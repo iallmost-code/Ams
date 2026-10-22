@@ -1,6 +1,7 @@
 import {
   createGame,
-  equipItem,
+  equipBestGear,
+  areaReadiness,
   forgeItem,
   forgeCost,
   buyPotion,
@@ -20,16 +21,7 @@ export function simulateProgression(seconds = 14400) {
     onSecond(s, second) {
       if (second % 10) return;
 
-      for (const item of [...s.player.inventory]) {
-        if (item.type === 'potion') continue;
-        const old = s.player.equipment[item.type],
-          stat = item.type === 'weapon' ? 'attack' : 'defense';
-        if (
-          (item[stat] || 0) * (1 + (item.stars || 0) * 0.12) >
-          (old?.[stat] || 0) * (1 + (old?.stars || 0) * 0.12)
-        )
-          equipItem(s, item.id);
-      }
+      equipBestGear(s);
       for (const item of [...s.player.inventory])
         if (item.type !== 'potion') salvageItem(s, item.id);
       const before = s.player.gold;
@@ -45,12 +37,7 @@ export function simulateProgression(seconds = 14400) {
           forgeItem(s, slot, 0.5);
       const area = [...s.world.areas]
         .reverse()
-        .find(
-          (a) =>
-            s.unlockedAreas.includes(a.id) &&
-            s.player.defense >= [0, 60, 150, 250][Math.floor(a.x / 1200)] &&
-            s.player.attack >= [0, 75, 175, 300][Math.floor(a.x / 1200)],
-        );
+        .find((a) => s.unlockedAreas.includes(a.id) && areaReadiness(s, a.id));
       // Hunt ordinary monsters; a boss fight requires the player's dodge input.
       if (area?.isBoss) {
         if (s.currentArea !== 'crystal_cavern') travelToArea(s, 'crystal_cavern');

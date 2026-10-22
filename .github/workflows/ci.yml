@@ -2,8 +2,14 @@ name: Game checks
 
 on:
   push:
+    branches: [main]
   pull_request:
 
+env:
+  PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/google-chrome
+concurrency:
+  group: game-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   game:
     runs-on: ubuntu-latest
@@ -17,7 +23,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Verify preinstalled Chrome
+        run: test -x "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()

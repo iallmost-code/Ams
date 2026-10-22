@@ -396,3 +396,219 @@ test('supply shop spends real gold on potions and persistent training', async ({
   expect(s.upgrades.vitality).toBe(1);
   expect(s.player.maxHp).toBe(205);
 });
+
+test('NPC dialogue accepts a mission, AUTO-quest makes real progress and reload stops automation', async ({
+  page,
+}) => {
+  await launch(page);
+  await page.keyboard.press('e');
+  await expect(page.getByRole('heading', { name: 'Elder Rowan', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Lanterns for the lost', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Accept quest', exact: true }).click();
+  expect((await snapshot(page)).story.activeId).toBe('glade-jellies');
+  await page.getByRole('button', { name: 'Follow quest', exact: true }).click();
+  await expect
+    .poll(async () => (await snapshot(page)).story.progress, { timeout: 15000 })
+    .toBeGreaterThan(0);
+  await page.waitForFunction(
+    () => JSON.parse(localStorage.getItem('aetherstory_v4')).story.progress > 0,
+  );
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('aetherstory_v4')).story);
+  await page.reload();
+  await page.waitForFunction(() => window.aetherStory);
+  await page.keyboard.press('Enter');
+  const restored = await snapshot(page);
+  expect(restored.story.activeId).toBe(saved.activeId);
+  expect(restored.story.progress).toBeGreaterThanOrEqual(saved.progress);
+  expect(restored.story.autoQuest).toBe(false);
+});
+test('completed NPC mission pays once and the next story offer appears', async ({ page }) => {
+  const game = createGame({ story: { activeId: 'glade-jellies', progress: 6 } });
+  await seedProgress(page, serializeGame(game));
+  await launch(page);
+  await page.keyboard.press('e');
+  await page.getByRole('button', { name: 'Turn in quest', exact: true }).click();
+  const done = await snapshot(page);
+  expect(done.story.completed).toEqual(['glade-jellies']);
+  expect(done.player.gold).toBe(400);
+  await expect(
+    page.getByRole('heading', { name: 'A pocketful of light', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Turn in quest', exact: true })).toHaveCount(0);
+  await page.reload();
+  await launch(page);
+  expect((await snapshot(page)).player.gold).toBe(400);
+});
+for (const [width, height, name] of [
+  [844, 390, 'landscape'],
+  [390, 844, 'portrait'],
+])
+  test(`quest journal and tracker work on phone ${name}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await launch(page);
+    await expect(page.locator('.story-strip')).toBeVisible();
+    const box = await page.locator('.story-strip').boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(box.y + box.height).toBeLessThan(height * 0.5);
+    await page.getByRole('button', { name: 'Quests', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'The lantern trail', exact: true }),
+    ).toBeVisible();
+    await expect(page.locator('.story-list .story-entry')).toHaveCount(17);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: `docs/qa/quests-${name}.png` });
+    await page.keyboard.press('Escape');
+    await page.locator('.story-strip [data-action="follow-quest"]').click();
+    await expect.poll(async () => (await snapshot(page)).story.autoQuest).toBe(true);
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: `docs/qa/quest-tracker-${name}.png` });
+  });
+
+test('portrait hint stays clear of the area label and appears only once per session', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await launch(page);
+  const tip = page.locator('.portrait-tip');
+  await expect(tip).toBeVisible();
+  const a = await tip.boundingBox(),
+    b = await page.locator('.area-pill').boundingBox();
+  expect(
+    a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y,
+  ).toBe(true);
+  await expect(tip).toBeHidden({ timeout: 9000 });
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(tip).toBeHidden();
+  await page.reload();
+  await page.waitForFunction(() => window.aetherStory);
+  await page.keyboard.press('Enter');
+  await expect(tip).toBeHidden();
+});
+test('Rowan daily board accepts, pays once and preserves the daily limit after reload', async ({
+  page,
+}) => {
+  const game = createGame();
+  const { localDay, DAILY_BOUNTIES } = await import('../../src/game/daily.js');
+  game.daily = {
+    day: localDay(),
+    claimed: [],
+    activeId: DAILY_BOUNTIES[0].id,
+    progress: DAILY_BOUNTIES[0].count,
+  };
+  await seedProgress(page, serializeGame(game));
+  await launch(page);
+  await page.keyboard.press('e');
+  await expect(
+    page.getByRole('heading', { name: 'Rowan’s daily board', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Claim daily bounty', exact: true }).click();
+  const done = await snapshot(page);
+  expect(done.daily.claimed).toHaveLength(1);
+  expect(done.player.gold).toBe(400);
+  await expect(page.getByRole('button', { name: 'Claim daily bounty', exact: true })).toHaveCount(
+    0,
+  );
+  await page.reload();
+  await launch(page);
+  expect((await snapshot(page)).daily.claimed).toHaveLength(1);
+  expect((await snapshot(page)).player.gold).toBe(400);
+});
+
+for (const [width, height, name] of [
+  [844, 390, 'landscape'],
+  [390, 844, 'portrait'],
+]) {
+  test(`locked quest names the next mission and offers Rowan daily board on phone ${name}`, async ({
+    page,
+  }) => {
+    const { STORY_QUESTS } = await import('../../src/game/quests.js');
+    const game = createGame({
+      player: { level: 4 },
+      story: { revision: 2, completed: STORY_QUESTS.slice(0, 4).map((q) => q.id) },
+    });
+    await seedProgress(page, serializeGame(game));
+    await page.setViewportSize({ width, height });
+    await launch(page);
+    await expect(page.locator('.story-strip-title')).toHaveText(
+      'Next: A wick for every window · Lv.5',
+    );
+    await expect(page.locator('.story-strip-progress')).toContainText('Try a daily bounty');
+    await page.screenshot({ path: `docs/qa/quest-gate-${name}.png` });
+    await page.keyboard.press('q');
+    const board = page.locator('.daily-board');
+    await board.scrollIntoViewIfNeeded();
+    await expect(
+      board.getByRole('button', { name: 'Accept daily bounty', exact: true }),
+    ).toBeEnabled();
+    await page.screenshot({ path: `docs/qa/daily-board-${name}.png` });
+    await board.getByRole('button', { name: 'Accept daily bounty', exact: true }).click();
+    expect((await snapshot(page)).daily.activeId).toBe('trail-patrol');
+  });
+}
+
+for (const [width, height, name] of [
+  [844, 390, 'landscape'],
+  [390, 844, 'portrait'],
+]) {
+  test(`screen-sized NPC names and gold pickups remain visible and separated on ${name}`, async ({
+    page,
+  }) => {
+    const game = createGame({ classId: 'arcanist' });
+    await seedProgress(page, serializeGame(game));
+    await page.setViewportSize({ width, height });
+    await launch(page);
+    await page.keyboard.down('j');
+    await page.waitForFunction(
+      () => window.aetherStory.getDiagnostics().text.floating.some((n) => /g$/.test(n.text)),
+      {},
+      { timeout: 15000 },
+    );
+    const text = await page.evaluate(() => window.aetherStory.getDiagnostics().text);
+    const rowan = text.nameplates.find((n) => n.text === 'Elder Rowan');
+    expect(rowan.fontSize).toBe(11);
+    expect(rowan.y).toBeGreaterThan(rowan.anchorY);
+    const gold = text.floating.find((n) => /g$/.test(n.text));
+    expect(gold.fontSize).toBe(20);
+    for (let i = 0; i < text.floating.length; i++) {
+      const a = text.floating[i];
+      expect(a.x).toBeGreaterThanOrEqual(4);
+      expect(a.x + a.width).toBeLessThanOrEqual(width - 4);
+      expect(a.y).toBeGreaterThanOrEqual(4);
+      expect(a.y + a.height).toBeLessThanOrEqual(height - 4);
+      for (let j = 0; j < i; j++) {
+        const b = text.floating[j];
+        expect(
+          a.x < b.x + b.width &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.height &&
+            a.y + a.height > b.y,
+        ).toBe(false);
+      }
+    }
+    await page.screenshot({ path: `docs/qa/readable-text-${name}.png` });
+    await page.keyboard.up('j');
+  });
+}
+test('AUTO-quest tracker explains why unlocked Canopy travel is blocked', async ({ page }) => {
+  const { STORY_QUESTS } = await import('../../src/game/quests.js');
+  const game = createGame({
+    player: { level: 10 },
+    inventory: [],
+    story: {
+      revision: 2,
+      completed: STORY_QUESTS.filter((q) => q.areaId === 'emerald_glade').map((q) => q.id),
+    },
+  });
+  await seedProgress(page, serializeGame(game));
+  await launch(page);
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Follow quest', exact: true }).click();
+  await expect(page.locator('.quest-progress')).toContainText('Gear up before Whispering Canopy');
+  await expect(page.locator('.quest-progress')).toContainText('Bag / Forge / Shop');
+  expect((await snapshot(page)).currentArea).toBe('emerald_glade');
+});

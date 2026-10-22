@@ -1,3 +1,5 @@
+import { worldToScreen, placeFloatingTexts } from './game/screen-text.js';
+import { getStoryView } from './game/quests.js';
 import { valleyArt, heroArt, creatureArt, cavernArt, altarArt, pipArt } from './art.js';
 /** Original AetherStory M illustration. All artwork is drawn locally with Canvas. */
 const TAU = Math.PI * 2;
@@ -127,6 +129,7 @@ export class Renderer {
           : 'forest';
   }
   render(state, dt = 1 / 60) {
+    this.textDiagnostics = { nameplates: [], floating: [] };
     if (!state?.player) return;
     const c = this.ctx,
       p = state.player;
@@ -169,6 +172,7 @@ export class Renderer {
     for (const rope of world.ropes || []) if (this.visible(rope.x, 80)) this.drawRope(rope);
     for (const platform of world.platforms || [])
       if (this.visible(platform.x, platform.w)) this.drawPlatform(platform);
+    this.drawStoryBeacon();
     for (const drop of state.drops || []) if (this.visible(drop.x, 30)) this.drawDrop(drop);
     for (const effect of state.effects || [])
       if (this.visible(effect.x, 250)) this.drawEffect(effect, false);
@@ -183,7 +187,19 @@ export class Renderer {
     for (const effect of state.effects || [])
       if (this.visible(effect.x, 250)) this.drawEffect(effect, true);
     if (this.particles) for (const particle of state.particles || []) this.drawParticle(particle);
-    for (const number of state.numbers || []) this.drawNumber(number, state.damageSkin);
+    // Name plates sit above terrain and sprites so ledges cannot hide the text.
+    for (const area of world.areas || [])
+      if (area.npc) {
+        const point = this.screenPoint(area.npc.x, area.npc.y);
+        if (
+          point.x >= -20 &&
+          point.x <= this.canvas.width / this.dpr + 20 &&
+          point.y > 0 &&
+          point.y < this.canvas.height / this.dpr - 20
+        )
+          this.drawNPCLabel(area.npc);
+      }
+    this.drawFloatingNumbers(state.numbers || [], state.damageSkin);
     c.restore();
     this.drawForeground();
   }
@@ -490,51 +506,131 @@ export class Renderer {
       ellipse(c, 18 + Math.sin(i * 2) * 8, -115 + i * 23, 10, 5, p.leaf[2], i);
     c.restore();
   }
+  screenPoint(x, y) {
+    return worldToScreen(x, y, this.camera, this.scale, this.dpr);
+  }
+  drawNamePill(text, x, y, color = '#fff1b9', offset = 16) {
+    const c = this.ctx,
+      point = this.screenPoint(x, y),
+      viewWidth = this.canvas.width / this.dpr;
+    c.save();
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.font = '900 11px Arial, sans-serif';
+    c.textAlign = 'center';
+    const width = Math.min(c.measureText(text).width + 14, viewWidth - 8),
+      height = 19;
+    x = clamp(point.x, width / 2 + 4, viewWidth - width / 2 - 4);
+    y = point.y + offset;
+    c.fillStyle = '#15252fee';
+    c.strokeStyle = '#c4a96b';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.roundRect(x - width / 2, y - 13, width, height, 6);
+    c.fill();
+    c.stroke();
+    c.lineWidth = 2.5;
+    c.strokeStyle = '#101a24';
+    c.strokeText(text, x, y, width - 10);
+    c.fillStyle = color;
+    c.fillText(text, x, y, width - 10);
+    this.textDiagnostics.nameplates.push({
+      text,
+      x: x - width / 2,
+      y: y - 13,
+      width,
+      height,
+      fontSize: 11,
+      anchorY: point.y,
+    });
+    c.restore();
+  }
+
   drawNPC(npc) {
     const c = this.ctx;
     c.save();
     c.translate(npc.x, npc.y);
     ellipse(c, 0, -2, 20, 5, '#253e4660');
-    path(c, 'M-12 -31 Q-22 -14 -16 -3 L17 -3 Q19 -18 11 -31Z', '#5b6e95', '#2d464f', 2);
-    path(c, 'M-9 -23 L-4 -4 L5 -4 L11 -25', '#b5ad88', '#3d5361', 1.5);
-    ellipse(c, 0, -39, 13, 15, '#ecc5a2', '#624f4a', 1.5);
-    path(
-      c,
-      'M-12 -37 Q-10 -19 0 -17 Q12 -24 12 -37 L5 -33 L0 -35 L-4 -32Z',
-      '#eee7cd',
-      '#b5bba4',
-      1,
-    );
-    ellipse(c, -5, -41, 1.5, 2, '#39484a');
-    ellipse(c, 5, -41, 1.5, 2, '#39484a');
-    path(
-      c,
-      'M-17 -48 Q-8 -55 -7 -62 Q4 -56 10 -56 L17 -47 Q0 -42 -17 -48Z',
-      '#596f7f',
-      '#344f59',
-      2,
-    );
+    if (npc.portrait !== undefined && heroArt.frames[npc.portrait * 4]) {
+      c.drawImage(heroArt.frames[npc.portrait * 4], -44, -88, 88, 88);
+    } else {
+      path(c, 'M-12 -31 Q-22 -14 -16 -3 L17 -3 Q19 -18 11 -31Z', '#5b6e95', '#2d464f', 2);
+      path(c, 'M-9 -23 L-4 -4 L5 -4 L11 -25', '#b5ad88', '#3d5361', 1.5);
+      ellipse(c, 0, -39, 13, 15, '#ecc5a2', '#624f4a', 1.5);
+      path(
+        c,
+        'M-12 -37 Q-10 -19 0 -17 Q12 -24 12 -37 L5 -33 L0 -35 L-4 -32Z',
+        '#eee7cd',
+        '#b5bba4',
+        1,
+      );
+      ellipse(c, -5, -41, 1.5, 2, '#39484a');
+      ellipse(c, 5, -41, 1.5, 2, '#39484a');
+      path(
+        c,
+        'M-17 -48 Q-8 -55 -7 -62 Q4 -56 10 -56 L17 -47 Q0 -42 -17 -48Z',
+        '#596f7f',
+        '#344f59',
+        2,
+      );
+      line(
+        c,
+        [
+          [17, -4],
+          [21, -43],
+          [26, -48],
+        ],
+        '#aa8960',
+        3,
+      );
+    }
+    c.restore();
+  }
+  drawNPCLabel(npc) {
+    this.drawNamePill(npc.name, npc.x, npc.y, '#fff1b9', 17);
+    const c = this.ctx,
+      point = this.screenPoint(npc.x, npc.y - (npc.portrait !== undefined ? 88 : 65));
+    c.save();
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.textAlign = 'center';
+    c.fillStyle = '#f4d986';
+    c.strokeStyle = '#18303b';
+    c.lineWidth = 2;
+    c.font = '900 15px Arial';
+    const marker =
+      getStoryView(this.state).quest?.giverId === npc.id
+        ? { ready: '?', available: '!', locked: '◇' }[getStoryView(this.state).status] || '·'
+        : '·';
+    c.strokeText(marker, point.x, point.y - 9);
+    c.fillText(marker, point.x, point.y - 9);
+    c.restore();
+  }
+
+  drawStoryBeacon() {
+    const view = getStoryView(this.state),
+      loc = view.quest?.objective.location;
+    if (view.status !== 'active' || !loc || !this.visible(loc.x, 100)) return;
+    const c = this.ctx;
+    c.save();
+    c.translate(loc.x, loc.y);
+    glow(c, 0, -35, 58, '#ffe4a955');
     line(
       c,
       [
-        [17, -4],
-        [21, -43],
-        [26, -48],
+        [0, 0],
+        [0, -42],
       ],
-      '#aa8960',
-      3,
+      '#8d7353',
+      5,
     );
-    c.font = 'bold 10px Georgia';
+    path(c, 'M-12 -48 L0 -58 L12 -48 L9 -28 L-9 -28Z', '#ffe1a0', '#705e49', 2);
+    star(c, 0, -40, 7, '#fffbe4');
+    c.font = 'bold 11px Georgia';
     c.textAlign = 'center';
-    c.fillStyle = '#fff0bd';
-    c.fillText(npc.name, 0, -73);
-    c.fillStyle = '#f4d986';
-    c.font = 'bold 17px Georgia';
-    c.fillText(
-      this.state.quest?.completed && !this.state.quest?.claimed ? '?' : '!',
-      0,
-      -91 + Math.sin(this.t * 2) * 3,
-    );
+    c.lineWidth = 3;
+    c.strokeStyle = '#182b35';
+    c.strokeText(loc.name, 0, -68);
+    c.fillStyle = '#fff0b6';
+    c.fillText(loc.name, 0, -68);
     c.restore();
   }
   drawPortal(portal, world) {
@@ -835,13 +931,7 @@ export class Renderer {
       }
       c.restore();
       c.save();
-      c.font = 'bold 11px Inter, sans-serif';
-      c.textAlign = 'center';
-      c.fillStyle = '#ffffff';
-      c.strokeStyle = '#624827';
-      c.lineWidth = 3;
-      c.strokeText('Aether', x, feet + 17);
-      c.fillText('Aether', x, feet + 17);
+      this.drawNamePill('Aether', x, feet, '#ffffff');
       c.restore();
       return;
     }
@@ -1213,15 +1303,7 @@ export class Renderer {
     const frame = pet.healFlash > 0 ? 3 : pet.mode === 'looting' ? 2 : Math.floor(this.t * 7) % 2;
     if (pipArt.frames[frame]) c.drawImage(pipArt.frames[frame], -38, -42, 76, 76);
     c.restore();
-    c.save();
-    c.textAlign = 'center';
-    c.font = 'bold 11px Inter, sans-serif';
-    c.lineWidth = 3;
-    c.strokeStyle = '#174458';
-    c.fillStyle = '#d4ffff';
-    c.strokeText('PIP', x, y + 37);
-    c.fillText('PIP', x, y + 37);
-    c.restore();
+    this.drawNamePill('Pip', x, y + 34, '#d4ffff', 17);
     // Player HP remains visible beside the action, even on a small phone.
     c.save();
     const hx = player.x + player.w / 2,
@@ -1251,7 +1333,7 @@ export class Renderer {
       const col = hurt ? 3 : Math.floor(this.t * 5 + enemy.x * 0.01) % 3;
       const sw = image.width / 4,
         sh = image.height / 4,
-        size = Math.max(enemy.w + 16, enemy.h * 1.5);
+        size = Math.max(enemy.w + 16, enemy.h * 1.5) * (enemy.isElite ? 1.3 : 1);
       const x = enemy.x + enemy.w / 2,
         feet = enemy.y + enemy.h;
       ellipse(c, x, feet + 2, size * 0.32, 4, '#59432d30');
@@ -1264,6 +1346,11 @@ export class Renderer {
       const bob = this.motion && !hurt ? Math.sin(this.t * 5 + enemy.x) * 1.2 : 0;
       c.drawImage(creatureArt.frames[row * 4 + col], -size / 2, -size - bob, size, size);
       c.restore();
+      if (enemy.isElite) {
+        this.drawNamePill(enemy.name, x, feet - size, '#ffe08c', -10);
+        glow(c, x, feet - size / 2, 48, '#ffd85b22');
+        star(c, x, feet - size - 46, 9, '#ffe08c');
+      }
       if (enemy.hp > 0 && enemy.hp < enemy.maxHp) {
         c.fillStyle = '#5c382bdd';
         c.fillRect(x - 23, feet - size - 7, 46, 5);
@@ -1545,6 +1632,10 @@ export class Renderer {
         '#c29747',
         1.5,
       );
+    } else if (drop.type === 'quest') {
+      glow(c, 0, 0, 28, '#ffe3a477');
+      path(c, 'M-4 -12 L4 -12 L4 -7 Q14 5 5 10 L-5 10 Q-14 5 -4 -7Z', '#9ae8d6', '#ffe3a4', 2);
+      star(c, 0, 1, 5, '#fff7c4');
     } else {
       glow(c, 0, 0, 24, drop.item?.rarity === 'epic' ? '#d49fff55' : '#9fffe54d');
       path(c, 'M -8 -8 L 8 -8 L 10 6 L 0 11 L -10 6 Z', '#d1e4c2', '#4d7e74', 2);
@@ -1725,40 +1816,60 @@ export class Renderer {
     ellipse(c, particle.x, particle.y, size, size, particle.color || '#ffe8ae');
     c.restore();
   }
-  drawNumber(number, skin = 'amber') {
-    if (!Number.isFinite(number.x) || !Number.isFinite(number.y)) return;
+  drawFloatingNumbers(numbers, skin = 'amber') {
     const c = this.ctx,
-      pal = {
-        amber: ['#fff3bc', '#845f3b'],
-        sakura: ['#ffe0ed', '#a54f80'],
-        frost: ['#e0ffff', '#377491'],
-        cyber: ['#d9ffbd', '#496a68'],
-        solar: ['#fff5a9', '#ae6a37'],
-      }[skin] || ['#fff3bc', '#845f3b'];
-    const text = String(number.text ?? number.amount ?? '');
+      viewport = { width: this.canvas.width / this.dpr, height: this.canvas.height / this.dpr };
     c.save();
-    c.globalAlpha = clamp((number.life ?? 1) * 2, 0, 1);
-    c.textAlign = 'center';
-    const numeric = /^\d/.test(text),
-      gold = /g$/.test(text),
-      healing = /HP|HEAL/.test(text);
-    const size = numeric ? 28 : text.length > 12 ? 17 : 23;
-    c.font = `900 ${size}px Arial, sans-serif`;
-    c.lineJoin = 'round';
-    c.lineWidth = 6;
-    c.strokeStyle = '#251529';
-    const y = number.y - Math.max(0, 1 - (number.life ?? 1)) * 26;
-    c.strokeText(text, number.x, y);
-    const fill = c.createLinearGradient(0, y - size, 0, y);
-    fill.addColorStop(0, healing ? '#edfff0' : gold ? '#fffbd4' : numeric ? pal[0] : '#ffffff');
-    fill.addColorStop(
-      1,
-      healing ? '#52ff9b' : gold ? '#ffc228' : numeric ? '#ff9b35' : number.color || pal[0],
-    );
-    c.fillStyle = fill;
-    c.fillText(text, number.x, y);
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const labels = numbers
+      .filter((n) => Number.isFinite(n.x) && Number.isFinite(n.y))
+      .map((number) => {
+        const text = String(number.text ?? number.amount ?? ''),
+          size = /^[+−-]?\d/.test(text) ? 20 : text.length > 12 ? 13 : 16;
+        const point = this.screenPoint(number.x, number.y);
+        c.font = `900 ${size}px Arial, sans-serif`;
+        return {
+          text,
+          number,
+          fontSize: size,
+          x: point.x,
+          y: point.y - (1 - (number.life ?? 1)) * 22,
+          width: c.measureText(text).width + 10,
+          height: size + 8,
+        };
+      });
+    const placed = placeFloatingTexts(labels, viewport);
+    this.textDiagnostics.floating = placed.map(({ number, ...box }) => box);
+    for (const box of placed) {
+      const { text, number, fontSize } = box,
+        x = box.x + box.width / 2,
+        y = box.y + box.height - 6;
+      const gold = /g$/.test(text),
+        heal = /HP|HEAL/.test(text),
+        hurt = /^[−-]/.test(text);
+      const colors = {
+        amber: ['#fff3bc', '#ff9b35'],
+        sakura: ['#ffe0ed', '#ff84b8'],
+        frost: ['#e0ffff', '#65ddff'],
+        cyber: ['#d9ffbd', '#81fa64'],
+        solar: ['#fff5a9', '#ffb435'],
+      }[skin] || ['#fff3bc', '#ff9b35'];
+      c.globalAlpha = clamp((number.life ?? 1) * 4, 0, 1);
+      c.font = `900 ${fontSize}px Arial, sans-serif`;
+      c.textAlign = 'center';
+      c.lineJoin = 'round';
+      c.lineWidth = 3.5;
+      c.strokeStyle = '#251529';
+      c.strokeText(text, x, y, box.width - 8);
+      const fill = c.createLinearGradient(0, y - fontSize, 0, y);
+      fill.addColorStop(0, heal ? '#edfff0' : gold ? '#ffec80' : hurt ? '#ffd0c9' : colors[0]);
+      fill.addColorStop(1, heal ? '#52ff9b' : gold ? '#ffc400' : hurt ? '#ff6e64' : colors[1]);
+      c.fillStyle = fill;
+      c.fillText(text, x, y, box.width - 8);
+    }
     c.restore();
   }
+
   crystal(c, x, y, size, alpha) {
     c.save();
     c.translate(x, y);

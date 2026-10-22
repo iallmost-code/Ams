@@ -35,15 +35,21 @@ For a portable **single HTML file**, run `npm run build:html`. This produces `ar
 
 Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓**. Press **Space** to jump; **Down + Space** drops through a floating platform. Press **J** to attack or hold the attack button. Skills use **Z/K**, **X**, **C**, **V**. **E** interacts with Elder Rowan or nearby portals and collects nearby loot. On mobile, drag the analog joystick to move or climb and use the other hand for jump, attacks and skills. The stick supports slower walking, diagonal climbing input, pointer cancellation and independent fingers.
 
-**T/B** toggles AUTO within your selected hunting area. Unlocking a harder area does not automatically send you there. Use the world map or a portal when prepared. Manual movement immediately takes priority. **I** opens inventory, **P** character, **M** world map, **G** forge, **U** skills, **O** settings and **Escape** pause/close. **Enter** begins the adventure.
+**T/B** toggles AUTO within your selected hunting area. Unlocking a harder area does not automatically send you there. Use the world map or a portal when prepared. Manual movement immediately takes priority. **Q** opens the quest journal, **I** opens inventory, **P** character, **M** world map, **G** forge, **U** skills, **O** settings and **Escape** pause/close. **Enter** begins the adventure.
 
-**Pip, your dragon companion**, automatically flies to gold and equipment within 360 world units in both manual and AUTO play. When your HP falls below 70%, Pip restores 11% of your maximum HP, with a 35-second cooldown and no potion cost. Your HUD shows HP, pet activity and healing readiness; the companion cannot revive a defeated hero.
+**The lantern trail** adds seventeen original quests across four chapters. Tap a nearby guide or press **E / Collect** to talk, accept a mission, and return for rewards. Choose **Follow quest** to opt into AUTO-quest: it travels through unlocked portals, hunts the right creatures, gathers quest drops with Pip, climbs to beacons and returns to the giver. Level requirements still apply. Manual movement takes priority; death, an impossible route and an active guardian objective stop quest automation. The final fight requires manual dodging. Quest progress saves locally, but AUTO-quest never resumes automatically after reload. Ordinary AUTO still hunts your selected area.
+
+**Rowan’s daily board** offers three shared bounties per local calendar day, accessible at any area’s guide. Hunts in all areas count, including story hunts. Accept and claim near a guide; the 25/50/100-kill goals award gold, cores, tonics and 2%/3%/5% of the current next-level XP requirement. The board resets at local midnight, and saved claims cannot be paid twice after reload. AUTO-quest reserves a short bounty for each longer story level gate; you can accept early from any guide.
+
+**AUTO preparation:** AUTO and AUTO-quest equip strictly better gear from the bag, keeping displaced pieces. AUTO-quest stays in the current area if attack/defense do not meet the next area’s preparation thresholds; the tracker points to Bag / Forge / Shop. Low-health AUTO stops attacking and retreats to recover while healing is unavailable. Manual travel and equipment choices remain available.
+
+**Pip, your dragon companion**, automatically flies to gold, equipment and active quest items within 360 world units in both manual and AUTO play. When your HP falls below 70%, Pip restores 11% of your maximum HP, with a 35-second cooldown and no potion cost. Your HUD shows HP, pet activity and healing readiness; the companion cannot revive a defeated hero.
 
 The four classes are Vanguard, Arcanist, Nightblade and Ranger. First and second skills are available immediately; advanced skills unlock at levels 10 and 25. Hunt monsters for XP, collect gold and equipment, equip six gear slots, spend skill points and enhance equipment in the timing-based forge. Defeated monsters respawn; a fallen hero returns safely after a short delay. Later hunting grounds unlock at levels 10, 16 and 20.
 
 Visit **Shop** for 90-gold tonics (45% HP, 10-second cooldown), vitality training (+25 max HP/rank), and weapon mastery (+4 attack/rank). Training costs 250 × (next rank)²; each path has ten ranks. Forge costs rise exponentially with stars, and failed attempts still cost gold and cores. Armor reduces incoming damage but cannot make the hero immune.
 
-Fresh starter AUTO reaches level 10 in about 28 minutes. A reproducible policy that equips loot, salvages spare gear, buys training/tonics and forges gear reaches level 25 in about 3 hours 49 minutes. The boss uses a 150,000 HP fight with **SHOCKWAVE · JUMP** and **METEOR · MOVE** warnings; AUTO is not a substitute for dodging. See the measured scenarios and gear assumptions in [QA](docs/QA.md). Existing saves retain their level; new fields default safely and area access follows the new level gates.
+Fresh-account AUTO reaches level 10 in about 27 minutes; the measured AUTO-quest route takes about 27 minutes. A reproducible policy that equips loot, salvages spare gear, buys training/tonics and forges gear reaches level 25 in about 3 hours 52 minutes. The boss uses a 150,000 HP fight with **SHOCKWAVE · JUMP** and **METEOR · MOVE** warnings; AUTO is not a substitute for dodging. See the measured scenarios and gear assumptions in [QA](docs/QA.md). Existing saves retain their level; new fields default safely and area access follows the new level gates.
 
 ## Save and install
 
@@ -60,7 +66,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The test runner starts a production preview on port 4173. It uses `/usr/bin/chromium` if available, otherwise Playwright's installed Chromium. To select a browser binary, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+CI uses the Ubuntu runner’s preinstalled Chrome to avoid a lengthy dependency download. The test runner starts a production preview on port 4173. It uses `/usr/bin/chromium` if available, otherwise Playwright's installed Chromium. To select a browser binary, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
 
 Behavior tests cover physics, combat, deaths/respawn, navigation, local saves, touch input and the fixed simulation clock. Browser tests exercise real controls, AUTO, panels, reload persistence, common mobile/desktop viewports and a fully offline production reload. See [QA record](docs/QA.md) for commands, actual results and device-testing limits.
 

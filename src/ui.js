@@ -1,3 +1,5 @@
+import { getDailyView } from './game/daily.js';
+import { getStoryView, STORY_QUESTS } from './game/quests.js';
 import { forgeCost, upgradeCost, POTION_PRICE } from './game/balance.js';
 const PATHS = {
   sword: 'm5 19 4-4m-3-3 6 6m-2-7 8-8 3 0 0 3-8 8M3 21l3-3',
@@ -43,16 +45,19 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     forgeTime = 0,
     forgeStart = 0,
     frame,
-    dead = false;
+    dead = false,
+    portraitTipShown = false,
+    portraitTipTimer;
   root.innerHTML = `
     <div class="top-hud">
       <button class="identity glass" data-action="character" aria-label="Open character"><span class="portrait">${icon('sword')}</span><span class="identity-copy"><b>Aether</b><span class="class-name">Vanguard · Adventurer</span><span class="vital hp"><i></i><span data-testid="hp">100 / 100</span></span><span class="vital mp"><i></i><span>60 / 60</span></span></span><span class="level-badge" data-testid="level">1</span></button>
       <div class="journey"><div class="brand">AETHERSTORY <small>M</small></div><span>CHRONICLES OF AETHERIA</span><div class="area-pill">${icon('leaf')}<b class="area-name">Emerald Glade</b><i></i><span>FIELD</span></div></div>
-      <div class="top-right"><div class="wallet"><span>${icon('coin')}<b class="gold" data-testid="gold">300</b></span><span>${icon('star')}<b class="cores">5</b></span></div><nav class="quick-nav" aria-label="Adventure menus">${button('map', 'Map', 'map')}${button('shop', 'Shop', 'coin')}${button('inventory', 'Bag', 'bag')}${button('forge', 'Forge', 'forge')}${button('skills', 'Skills', 'spark')}${button('class', 'Class', 'class')}${button('pause', 'Pause', 'pause', 'aria-label="Pause game"')}</nav></div>
+      <div class="top-right"><div class="wallet"><span>${icon('coin')}<b class="gold" data-testid="gold">300</b></span><span>${icon('star')}<b class="cores">5</b></span></div><nav class="quick-nav" aria-label="Adventure menus">${button('quests', 'Quests', 'bag')}${button('map', 'Map', 'map')}${button('shop', 'Shop', 'coin')}${button('inventory', 'Bag', 'bag')}${button('forge', 'Forge', 'forge')}${button('skills', 'Skills', 'spark')}${button('class', 'Class', 'class')}${button('pause', 'Pause', 'pause', 'aria-label="Pause game"')}</nav></div>
     </div>
-    <aside class="field-info"><button class="minimap-toggle glass" data-action="toggle-minimap" aria-label="Toggle mini-map" aria-expanded="false">${icon('map')}<span>MINI-MAP</span></button><button class="minimap glass" data-action="map" aria-label="Open world map"><canvas width="190" height="70" aria-hidden="true"></canvas><span class="map-caption">EMERALD GLADE ${icon('map')}</span></button><div class="quest glass"><div class="eyebrow">STORY QUEST <span>01</span></div><b>A little courage</b><p>Help Elder Rowan clear the woodland.</p><div><span class="quest-progress">Defeat creatures · 0 / 6</span><button data-action="claim" class="claim" disabled>Claim ${icon('arrow')}</button></div><div class="quest-line"><i></i></div></div></aside>
+    <aside class="field-info"><button class="minimap-toggle glass" data-action="toggle-minimap" aria-label="Toggle mini-map" aria-expanded="false">${icon('map')}<span>MINI-MAP</span></button><button class="minimap glass" data-action="map" aria-label="Open world map"><canvas width="190" height="70" aria-hidden="true"></canvas><span class="map-caption">EMERALD GLADE ${icon('map')}</span></button><div class="quest glass"><div class="eyebrow">THE LANTERN TRAIL</div><b class="story-title"></b><p class="quest-progress"></p><div><button data-action="quests">Journal</button><button data-action="follow-quest">Follow</button></div><div class="quest-line"><i></i></div></div></aside>
+    <div class="story-strip glass"><button data-action="quests"><b class="story-strip-title"></b><small class="story-strip-progress"></small></button><button data-action="follow-quest">Follow</button></div>
     <div class="notice" role="status" aria-live="polite"></div>
-    <div class="portrait-tip">${icon('map')} More room to explore in landscape</div>
+    <div class="portrait-tip" hidden>${icon('map')} More room to explore in landscape</div>
     <div class="bottom-hud"><div class="movement"><div class="joystick" data-joystick role="group" aria-label="Movement joystick"><div class="joystick-ring"></div><span class="joystick-thumb"></span><span class="joystick-label">MOVE · CLIMB</span></div><span class="key-hint">W A S D · MOVE</span></div><div class="bottom-center"><button class="auto-button" data-action="auto" aria-pressed="false"><span class="auto-dot"></span>AUTO <small>OFF</small></button><div class="pet-status" aria-live="off"><b>✦ PIP</b><span>Auto loot · Heal ready</span></div><div class="utility-controls"><button data-control="interact" aria-label="Collect or interact">${icon('leaf')}<span>Collect <kbd>E</kbd></span></button><button data-action="potion" aria-label="Use health potion">${icon('potion')}<span class="potion-count">3</span></button></div><div class="save-indicator" data-status="pending" role="status" aria-live="polite"><i></i><span>SAVE PENDING</span></div></div><div class="combat-controls"><div class="skill-wheel">${[0, 1, 2, 3].map((i) => `<button class="skill skill-${i}" data-control="${i ? `skill${i + 1}` : 'skill'}" aria-label="Skill ${i + 1}"><span class="skill-glyph">${icon(['sword', 'spark', 'star', 'leaf'][i])}</span><span class="skill-cooldown"></span><span class="skill-key">${['Z', 'X', 'C', 'V'][i]}</span><span class="skill-level"></span></button>`).join('')}</div><button class="jump-button" data-control="jump" aria-label="Jump">${icon('jump')}<small>JUMP</small></button><button class="attack-button" data-control="attack" aria-label="Attack">${icon('sword')}<span>ATTACK</span><kbd>J</kbd></button></div></div>
     <div class="experience"><i></i><span>LEVEL 1 · 0 / 100 XP</span></div>
     <div class="modal-layer"><section class="modal" role="dialog" aria-modal="true" aria-label="Adventure menu" tabindex="-1"></section></div>`;
@@ -141,6 +146,156 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         ? Object.entries(state.classes).map(([id, value]) => ({ id, ...value }))
         : fallback;
   }
+  function renderDailyBoard(body) {
+    const view = getDailyView(state),
+      section = node('section', 'daily-board story-summary');
+    section.append(
+      node('div', 'eyebrow', 'COURIER BOUNTIES · ALL AREAS'),
+      node('h2', '', 'Rowan’s daily board'),
+    );
+    section.append(
+      node(
+        'p',
+        '',
+        `${view.remaining}/3 rewards left today · Resets at local midnight. Any area’s guide carries Rowan’s board. XP scales to your level; cores and tonics prepare you for the next area.`,
+      ),
+    );
+    if (view.bounty) {
+      const b = view.bounty;
+      section.append(
+        node('h3', '', b.title),
+        node(
+          'p',
+          '',
+          `Defeat ${b.count} creatures in any area · ${view.progress}/${b.count} · ${view.rewards.xp} XP · ${b.gold} gold · ${b.cores} cores · ${b.tonics} tonics`,
+        ),
+      );
+      const guide = state.world.areas.find((a) => a.id === state.currentArea)?.npc,
+        p = state.player;
+      const near =
+        guide && Math.hypot(p.x + p.w / 2 - guide.x, p.y + p.h - guide.y) < 80 && p.hp > 0;
+      if (view.status === 'available' || view.status === 'ready') {
+        const el = actionButton(
+          view.status === 'ready' ? 'claim-daily' : 'accept-daily',
+          view.status === 'ready' ? 'Claim daily bounty' : 'Accept daily bounty',
+          b.id,
+        );
+        el.disabled = !near;
+        section.append(el);
+        if (!near)
+          section.append(
+            node(
+              'p',
+              '',
+              'Speak to a nearby guide to accept or claim. AUTO-quest can handle bounties while waiting for a level gate.',
+            ),
+          );
+      } else
+        section.append(
+          node('b', 'story-objective', 'In progress · Pip and your journal will keep count'),
+        );
+    } else
+      section.append(
+        node(
+          'b',
+          'story-objective',
+          'Three rewards claimed. Return tomorrow; the story and hunting grounds remain open.',
+        ),
+      );
+    body.append(section);
+  }
+  function renderStory(body) {
+    const view = getStoryView(state),
+      q = view.quest;
+    const summary = node('section', 'story-summary');
+    if (q) {
+      summary.append(
+        node('div', 'eyebrow', `CHAPTER ${view.chapter} · ${view.area.name}`),
+        node('h2', '', q.title),
+      );
+      const speaking = panel === 'dialogue' && state.dialogueNpcId === q.giverId;
+      const lines = speaking
+        ? view.status === 'ready'
+          ? [q.thanks]
+          : view.status === 'available'
+            ? q.offer
+            : [q.reminder, q.description]
+        : [q.description];
+      for (const line of lines) summary.append(node('p', '', line));
+      summary.append(node('b', 'story-objective', view.description));
+      summary.append(
+        node(
+          'p',
+          'story-rewards',
+          `Rewards · ${q.rewards.xp} XP · ${q.rewards.gold} gold${q.rewards.cores ? ` · ${q.rewards.cores} cores` : ''}${q.rewards.tonics ? ` · ${q.rewards.tonics} tonics` : ''}`,
+        ),
+      );
+      const actions = node('div', 'story-actions');
+      if (speaking && view.status === 'available')
+        actions.append(actionButton('accept-story', 'Accept quest', q.id, 'primary'));
+      if (speaking && view.status === 'ready')
+        actions.append(actionButton('turn-in-story', 'Turn in quest', undefined, 'primary'));
+      const follow = actionButton(
+        'follow-quest',
+        state.story.autoQuest ? 'Stop following' : 'Follow quest',
+      );
+      follow.disabled = q.objective.kind === 'boss' && view.status === 'active';
+      actions.append(follow);
+      summary.append(actions);
+      if (!speaking && panel === 'dialogue')
+        summary.append(
+          node(
+            'p',
+            '',
+            `Your next guide is ${view.npc.name}. Open your journal or follow the trail.`,
+          ),
+        );
+    } else
+      summary.append(
+        node('h2', '', 'The lantern trail is restored'),
+        node('p', '', 'Four lights shine again. Your adventure continues in the hunting grounds.'),
+      );
+    body.append(summary);
+    renderDailyBoard(body);
+    body.append(
+      node(
+        'p',
+        'story-help',
+        'AUTO-quest travels through unlocked portals, accepts missions, hunts, gathers drops and returns to your guide. Manual movement takes priority. It pauses on death and before the guardian fight.',
+      ),
+    );
+    if (panel !== 'quests') return;
+    const list = node('div', 'story-list');
+    STORY_QUESTS.forEach((quest, index) => {
+      const row = node('article', 'story-entry');
+      const done = index < state.story.completed.length;
+      row.append(
+        node(
+          'small',
+          'eyebrow',
+          `${done ? 'COMPLETE' : quest.id === q?.id ? view.status.toUpperCase() : 'UPCOMING'} · CHAPTER ${state.world.areas.findIndex((a) => a.id === quest.areaId) + 1} · Lv.${quest.minLevel}`,
+        ),
+        node('h3', '', quest.title),
+        node('p', '', quest.description),
+      );
+      list.append(row);
+    });
+    body.append(list);
+    const bounty = node('section', 'story-entry'),
+      old = state.quest;
+    bounty.append(
+      node('h3', '', 'Woodland bounty'),
+      node(
+        'p',
+        '',
+        `${old.kills}/${old.target} creatures · ${old.claimed ? 'Reward claimed' : 'An extra favor for Rowan'}`,
+      ),
+    );
+    const claim = actionButton('claim', 'Claim bounty');
+    claim.disabled = !old.completed || old.claimed;
+    bounty.append(claim);
+    body.append(bounty);
+  }
   function renderPanel() {
     if (!panel) return;
     modal.className = `modal panel-${panel}`;
@@ -152,6 +307,10 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       body = heading(
         'YOUR ADVENTURE',
         {
+          quests: 'The lantern trail',
+          dialogue:
+            state?.world?.areas.find((a) => a.npc?.id === state.dialogueNpcId)?.npc.name ||
+            'A traveler',
           shop: 'Rowan’s supplies',
           inventory: 'Traveler’s satchel',
           character: 'Aether, the adventurer',
@@ -178,7 +337,9 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
           offline: 'Your AUTO expedition has returned. Rewards are already added to your save.',
         }[panel] || '',
       );
-    if (panel === 'offline') {
+    if (panel === 'quests' || panel === 'dialogue') {
+      renderStory(body);
+    } else if (panel === 'offline') {
       const summary = state.offlineSummary || {};
       const stats = node('div', 'stat-grid');
       for (const [label, value] of [
@@ -626,16 +787,58 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     );
     $('.pet-status').classList.toggle('healing', pet?.healFlash > 0);
     $('.identity').classList.toggle('low-hp', p.hp < p.maxHp * 0.3);
-    const q = state.quest || {};
+    const story = getStoryView(state),
+      daily = getDailyView(state);
+    if (started && !portraitTipShown && window.matchMedia('(orientation: portrait)').matches) {
+      portraitTipShown = true;
+      let seen = false;
+      try {
+        seen = sessionStorage.getItem('aether-portrait-hint') === 'shown';
+        sessionStorage.setItem('aether-portrait-hint', 'shown');
+      } catch {}
+      if (!seen) {
+        $('.portrait-tip').hidden = false;
+        portraitTipTimer = setTimeout(() => {
+          $('.portrait-tip').hidden = true;
+        }, 5500);
+      }
+    }
+    setText('.story-title', story.quest?.title || 'A trail restored');
     setText(
       '.quest-progress',
-      q.claimed
-        ? 'Complete · The forest thanks you'
-        : `Defeat creatures · ${Math.min(n(q.kills), n(q.target))} / ${amount(q.target)}`,
+      state.story.autoQuest && state.story.status.startsWith('Gear up')
+        ? state.story.status
+        : story.description || 'All four chapters complete',
     );
-    $('.claim').disabled = !q.completed || q.claimed;
+    setText(
+      '.story-strip-title',
+      story.quest
+        ? `${story.status === 'locked' ? 'Next: ' : ''}${story.quest.title}${story.status === 'locked' ? ` · Lv.${story.quest.minLevel}` : ''}`
+        : 'A trail restored',
+    );
+    setText(
+      '.story-strip-progress',
+      state.autoStatus ||
+        (state.story.autoQuest && state.story.status.startsWith('Gear up')
+          ? state.story.status
+          : story.status === 'locked'
+            ? daily.status === 'active' || daily.status === 'ready'
+              ? `Daily: ${daily.bounty.title} · ${daily.progress}/${daily.bounty.count}`
+              : daily.status === 'available'
+                ? 'Try a daily bounty · Rowan’s board'
+                : 'Daily rewards claimed · train on the lantern trail'
+            : state.story.autoQuest
+              ? `AUTO · ${state.story.status}`
+              : story.description || 'All chapters complete'),
+    );
+    $$('.story-strip [data-action="follow-quest"], .quest [data-action="follow-quest"]').forEach(
+      (el) => {
+        el.textContent = state.story.autoQuest ? 'Stop' : 'Follow';
+        el.setAttribute('aria-pressed', String(state.story.autoQuest));
+      },
+    );
     $('.quest-line i').style.width =
-      `${q.claimed ? 100 : Math.min(100, (n(q.kills) / Math.max(1, n(q.target))) * 100)}%`;
+      `${story.quest ? (story.progress / story.quest.objective.count) * 100 : 100}%`;
     const potions = (p.inventory || [])
       .filter((item) => item.type === 'potion')
       .reduce((sum, item) => sum + (item.count || 1), 0);
@@ -683,6 +886,13 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         state.damageSkin,
         state.settings,
         state.upgrades,
+        state.daily,
+        state.story.activeId,
+        state.story.progress,
+        state.story.completed,
+        state.story.autoQuest,
+        state.dialogueNpcId,
+        state.quest,
       ]);
       if (key !== panelKey && !forgeRunning) {
         panelKey = key;
@@ -739,6 +949,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       if (panel === 'pause' || panel === 'settings') renderPanel();
     },
     destroy() {
+      clearTimeout(portraitTipTimer);
       dead = true;
       cancelAnimationFrame(frame);
       root.removeEventListener('click', click);
