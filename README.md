@@ -21,6 +21,10 @@ npm run preview
 
 The production build is the `dist/` directory. Deploy its contents to an HTTPS static host. Relative asset paths support subdirectory hosting. Do not open `index.html` using a `file://` URL.
 
+### GitHub Pages
+
+The prepared `gh-pages` branch contains the built game, `.nojekyll`, all assets and a portable `AetherStory.html`. In repository **Settings → Pages**, choose **Deploy from a branch**, **gh-pages**, **/ (root)** and save. Publishing this branch does not require merging the source PR. The expected site address is `https://iallmost-code.github.io/Ams/`; wait for GitHub's Pages deployment before using it. Publish the production build rather than the Vite source directory. The connected integration could push the branch but GitHub denied permission to configure Pages, so that settings selection must be made by the repository owner.
+
 For a portable **single HTML file**, run `npm run build:html`. This produces `artifacts/AetherStory.html` with the JavaScript, styles, icons and original Canvas art embedded. It needs no asset folder or network connection. Open the downloaded HTML in a browser that permits local HTML scripts; phone file previewers may display a preview without running the game. This export does not register a service worker; saves remain browser-dependent. A ready-made copy is included as `AetherStory.html` in the repository.
 
 ## Play
