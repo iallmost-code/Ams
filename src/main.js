@@ -356,7 +356,7 @@ window.addEventListener('appinstalled', () => {
   notify('AetherStory is installed. Your adventure is ready offline.');
 });
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+if (import.meta.env.PROD && import.meta.env.VITE_SINGLE_FILE !== 'true' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
       console.warn('Offline installation is unavailable:', error.message);

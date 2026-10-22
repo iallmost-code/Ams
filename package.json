@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build && node scripts/build-sw.js",
+    "build:html": "node scripts/build-html.js",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test"

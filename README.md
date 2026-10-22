@@ -21,6 +21,8 @@ npm run preview
 
 The production build is the `dist/` directory. Deploy its contents to an HTTPS static host. Relative asset paths support subdirectory hosting. Do not open `index.html` using a `file://` URL.
 
+For a portable **single HTML file**, run `npm run build:html`. This produces `artifacts/AetherStory.html` with the JavaScript, styles, icons and original Canvas art embedded. It needs no asset folder or network connection. Open the downloaded HTML in a browser that permits local HTML scripts; phone file previewers may display a preview without running the game. This export does not register a service worker; saves remain browser-dependent. A ready-made copy is included as `AetherStory.html` in the repository.
+
 ## Play
 
 Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓**. Press **Space** to jump; **Down + Space** drops through a floating platform. Press **J** to attack or hold the attack button. Skills use **Z/K**, **X**, **C**, **V**. **E** interacts with Elder Rowan or nearby portals and collects nearby loot. Touch controls allow movement, climbing and attacks with separate fingers.
