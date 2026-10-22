@@ -3181,3 +3181,122 @@ button {
     top: 174px;
   }
 }
+/* The story tracker stays above the field, away from movement and skill controls. */
+.story-strip {
+  display: none;
+  pointer-events: auto;
+  position: fixed;
+  z-index: 12;
+}
+.story-strip button {
+  color: #fff0c1;
+  background: none;
+  border: 0;
+  padding: 5px 8px;
+  text-align: left;
+}
+.story-strip button:first-child {
+  min-width: 0;
+  flex: 1;
+}
+.story-strip b,
+.story-strip small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.story-strip b {
+  font-size: 10px;
+}
+.story-strip small {
+  font-size: 9px;
+  color: #e3e8d8;
+}
+.story-strip button:last-child {
+  border-left: 1px solid #ae976366;
+  font-weight: bold;
+}
+.story-summary {
+  padding: 14px;
+  border: 1px solid #bfa57166;
+  border-radius: 12px;
+  background: #182f3ccc;
+}
+.story-summary h2 {
+  margin: 8px 0;
+  color: #ffe5a7;
+  font-family: Georgia, serif;
+}
+.story-summary p,
+.story-entry p,
+.story-help {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #d3dfda;
+}
+.story-objective {
+  display: block;
+  color: #ffe5a7;
+  font-size: 12px;
+}
+.story-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.story-list {
+  display: grid;
+  gap: 8px;
+}
+.story-entry {
+  padding: 12px;
+  border: 1px solid #9eb6a733;
+  border-radius: 10px;
+  background: #10283388;
+}
+.story-entry h3 {
+  margin: 6px 0;
+  color: #f7e4b9;
+  font-size: 15px;
+}
+.story-entry p {
+  margin: 4px 0;
+}
+.modal-open .story-strip {
+  visibility: hidden;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .story-strip {
+    display: flex;
+    top: 72px;
+    left: 150px;
+    width: 280px;
+    max-width: calc(100vw - 340px);
+  }
+  .story-summary {
+    padding: 10px;
+  }
+  .story-summary p {
+    margin: 5px 0;
+  }
+  .story-summary h2 {
+    font-size: 19px;
+    margin: 4px 0;
+  }
+}
+@media (orientation: portrait) {
+  .story-strip {
+    display: flex;
+    top: 215px;
+    left: 8px;
+    width: 250px;
+    max-width: calc(100vw - 16px);
+  }
+  #ui:not(.minimap-collapsed) .story-strip {
+    top: 290px;
+  }
+  .quick-nav {
+    flex-wrap: wrap;
+  }
+}

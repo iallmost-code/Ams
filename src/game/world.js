@@ -11,12 +11,13 @@ export const AREA_DEFINITIONS = [
     theme: 'forest',
     x: 0,
     end: 1200,
-    npc: { name: 'Elder Rowan', x: 115, y: 820 },
+    npc: { id: 'rowan', name: 'Elder Rowan', x: 115, y: 820 },
     isBoss: false,
   },
   {
     id: 'whispering_canopy',
     name: 'Whispering Canopy',
+    npc: { id: 'lyra', name: 'Scout Lyra', x: 1400, y: 820, portrait: 3 },
     minLevel: 10,
     theme: 'canopy',
     x: 1200,
@@ -26,6 +27,7 @@ export const AREA_DEFINITIONS = [
   {
     id: 'crystal_cavern',
     name: 'Crystal Cavern',
+    npc: { id: 'iona', name: 'Artificer Iona', x: 2600, y: 820, portrait: 1 },
     minLevel: 16,
     theme: 'crystal',
     x: 2400,
@@ -35,6 +37,7 @@ export const AREA_DEFINITIONS = [
   {
     id: 'ember_altar',
     name: 'Ember Altar',
+    npc: { id: 'ceryn', name: 'Warden Ceryn', x: 3800, y: 820, portrait: 0 },
     minLevel: 20,
     theme: 'ember',
     x: 3600,

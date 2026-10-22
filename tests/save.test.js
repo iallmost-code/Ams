@@ -35,6 +35,7 @@ const progress = () => ({
   version: 4,
   saveVersion: 4,
   absence: null,
+  story: { completed: [], activeId: null, progress: 0 },
   player: { level: 25, xp: 82, gold: 4700, deaths: 0 },
   upgrades: { vitality: 0, mastery: 0 },
   inventory: [item('weapon', 'alternate'), { ...item('potion'), count: 3 }],

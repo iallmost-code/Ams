@@ -1,4 +1,13 @@
 import {
+  STORY_QUESTS,
+  createStory,
+  getStoryView,
+  normalizeStoryProgress,
+  matchesQuestEnemy,
+  recordStoryEvent,
+} from './quests.js';
+export { getStoryView } from './quests.js';
+import {
   xpThreshold,
   enemyXp,
   enemyGold,
@@ -291,6 +300,8 @@ export function createGame(progress = null) {
     auto: false,
     paused: false,
     kills: 0,
+    story: createStory(saved.story),
+    dialogueNpcId: null,
     quest: {
       kills: 0,
       target: 10,
@@ -340,6 +351,8 @@ export function createGame(progress = null) {
   return s;
 }
 export function toggleAuto(s) {
+  s.story.autoQuest = false;
+  s.story.status = 'idle';
   s.auto = !s.auto;
   s.autoTarget = null;
   s.autoNavigation.edge = null;
@@ -405,6 +418,73 @@ export function buyUpgrade(s, type) {
   recalculate(s);
   notice(s, `${type === 'vitality' ? 'Vitality' : 'Weapon mastery'} training improved`);
   return true;
+}
+function nearGiver(s, view = getStoryView(s)) {
+  const n = view.npc,
+    p = s.player;
+  return (
+    !!n && s.currentArea === view.quest.areaId && Math.hypot(center(p) - n.x, p.y + p.h - n.y) < 80
+  );
+}
+export function acceptStoryQuest(s, id) {
+  const view = getStoryView(s);
+  if (
+    view.status !== 'available' ||
+    view.quest.id !== id ||
+    !nearGiver(s, view) ||
+    s.player.hp <= 0
+  )
+    return false;
+  s.story.activeId = id;
+  s.story.progress = 0;
+  s.story.lastDialogue = view.quest.offer[0];
+  notice(s, `${view.npc.name}: ${view.quest.title}`);
+  return true;
+}
+export function turnInStoryQuest(s) {
+  const view = getStoryView(s);
+  if (view.status !== 'ready' || !nearGiver(s, view) || s.player.hp <= 0) return false;
+  const q = view.quest,
+    reward = q.rewards;
+  s.story.completed.push(q.id);
+  s.story.activeId = null;
+  s.story.progress = 0;
+  s.story.lastDialogue = q.thanks;
+  s.player.gold += reward.gold;
+  s.starCores += reward.cores || 0;
+  gainExperience(s, reward.xp);
+  if (reward.tonics) {
+    const item = s.player.inventory.find(
+      (i) => i.type === 'potion' && i.id === 'health-potion' && i.count + reward.tonics <= 9999,
+    );
+    if (item) item.count += reward.tonics;
+    else
+      s.player.inventory.push({
+        id: `story-${q.id}-tonic`,
+        type: 'potion',
+        name: 'Crimson Tonic',
+        rarity: 'normal',
+        icon: '♥',
+        count: reward.tonics,
+      });
+  }
+  notice(s, `${q.title} complete · +${reward.gold} gold · +${reward.xp} XP`);
+  return true;
+}
+export function toggleAutoQuest(s) {
+  s.story.autoQuest = !s.story.autoQuest;
+  s.auto = s.story.autoQuest;
+  s.story.status = s.story.autoQuest ? 'following' : 'idle';
+  s.story.cooldown = 0;
+  s.autoTarget = null;
+  s.autoNavigation.edge = null;
+  notice(
+    s,
+    s.story.autoQuest
+      ? 'AUTO-quest follows your story. Manual movement takes priority.'
+      : 'AUTO-quest stopped',
+  );
+  return s.story.autoQuest;
 }
 export function claimQuest(s) {
   if (s.quest.claimed || s.quest.kills < s.quest.target) return false;
@@ -530,6 +610,7 @@ export function serializeGame(s, settings = s.settings) {
     settings,
     unlockedAreas: s.unlockedAreas,
     quest: s.quest,
+    story: normalizeStoryProgress(s.story),
     classId: s.classId,
     damageSkin: s.damageSkin,
     starCores: s.starCores,
@@ -554,14 +635,7 @@ export function interactWorld(s) {
     if (!moved) notice(s, 'This gate opens when you reach the next hunting level.');
     return moved;
   }
-  if (area.npc && near(area.npc)) {
-    if (!claimQuest(s))
-      notice(
-        s,
-        `${area.npc.name}: ${s.quest.claimed ? 'The woodland thanks you.' : `Defeat ${Math.max(0, s.quest.target - s.quest.kills)} more creatures.`}`,
-      );
-    return true;
-  }
+  if (area.npc && near(area.npc)) return talkToNpc(s, area.npc.id);
   return false;
 }
 
@@ -572,6 +646,25 @@ function reward(s, e) {
   e.deathTimer = 0.65;
   e.respawnTimer = e.isBoss ? 35 : 9;
   s.kills++;
+  recordStoryEvent(s, { kind: 'defeat', enemy: e });
+  const active = getStoryView(s);
+  if (
+    active.status === 'active' &&
+    active.quest.objective.kind === 'collect' &&
+    matchesQuestEnemy(active.quest, e)
+  )
+    s.drops.push({
+      id: `drop-${s.nextId++}`,
+      type: 'quest',
+      questId: active.quest.id,
+      name: active.quest.title,
+      x: center(e),
+      y: e.y + e.h - 12,
+      w: 18,
+      h: 18,
+      age: 0,
+      platformId: e.platformId,
+    });
   s.quest.kills++;
   s.quest.completed = s.quest.kills >= s.quest.target;
   s.player.xp += enemyXp(e);
@@ -951,7 +1044,7 @@ function finishAutoInput(s, input, dt) {
   }
   return input;
 }
-function autoInput(s, dt) {
+function autoInput(s, dt, directive = null) {
   const p = s.player,
     nav = s.autoNavigation,
     input = {};
@@ -972,19 +1065,34 @@ function autoInput(s, dt) {
     input.left = p.vx < 0;
     return finishAutoInput(s, input, dt);
   }
-  let target = s.drops
-    .filter(
-      (d) => accessible(d) && findRoute(s.navigation, node, d.platformId || 'ground') !== null,
-    )
-    .sort(
-      (a, b) => Math.hypot(a.x - center(p), a.y - p.y) - Math.hypot(b.x - center(p), b.y - p.y),
-    )[0];
+  let target =
+    directive?.target ||
+    s.drops
+      .filter(
+        (d) =>
+          (!directive || (d.type === 'quest' && d.questId === s.story.activeId)) &&
+          accessible(d) &&
+          findRoute(s.navigation, node, d.platformId || 'ground') !== null,
+      )
+      .sort(
+        (a, b) => Math.hypot(a.x - center(p), a.y - p.y) - Math.hypot(b.x - center(p), b.y - p.y),
+      )[0];
   if (!target) {
-    target = s.enemies.find((e) => e.id === s.autoTarget && e.hp > 0 && accessible(e));
+    target = s.enemies.find(
+      (e) =>
+        e.id === s.autoTarget &&
+        e.hp > 0 &&
+        accessible(e) &&
+        (!directive?.filter || directive.filter(e)),
+    );
     if (!target)
       target = s.enemies
         .filter(
-          (e) => e.hp > 0 && accessible(e) && findRoute(s.navigation, node, e.platformId) !== null,
+          (e) =>
+            e.hp > 0 &&
+            accessible(e) &&
+            (!directive?.filter || directive.filter(e)) &&
+            findRoute(s.navigation, node, e.platformId) !== null,
         )
         .sort((a, b) => {
           const score = (e) =>
@@ -1007,12 +1115,12 @@ function autoInput(s, dt) {
   if (p.platformId === targetPlatform && !p.climbing) {
     nav.edge = null;
     const dx = (target.w ? center(target) : target.x) - center(p);
-    if (target.type === 'gold' || target.type === 'item') {
+    if (['gold', 'item', 'quest', 'waypoint'].includes(target.type)) {
       if (Math.abs(dx) > 20) {
         input.right = dx > 0;
         input.left = dx < 0;
       }
-      input.interact = true;
+      input.interact = target.type !== 'waypoint';
     } else {
       p.facing = dx < 0 ? -1 : 1;
       const desired = Math.min(p.attackRange * 0.68, 115);
@@ -1069,6 +1177,113 @@ function autoInput(s, dt) {
   }
   return finishAutoInput(s, input, dt);
 }
+function haltQuestRoute(s) {
+  s.story.autoQuest = false;
+  s.auto = false;
+  s.story.status = 'Route blocked';
+  s.autoTarget = null;
+  s.autoNavigation.edge = null;
+  notice(s, 'No safe quest route. Move manually, then follow the quest again.');
+  return {};
+}
+function questNavigation(s, dt, target) {
+  const node = s.player.platformId || s.autoNavigation.edge?.from;
+  if (node && findRoute(s.navigation, node, target.platformId || 'ground') === null)
+    return haltQuestRoute(s);
+  return autoInput(s, dt, { target });
+}
+export function talkToNpc(s, id) {
+  const area = s.world.areas.find((a) => a.id === s.currentArea),
+    npc = area?.npc,
+    p = s.player;
+  if (!npc || npc.id !== id || p.hp <= 0 || Math.hypot(center(p) - npc.x, p.y + p.h - npc.y) >= 80)
+    return false;
+  if (npc.id === 'rowan') claimQuest(s);
+  s.dialogueNpcId = id;
+  notice(s, `${npc.name} is ready to talk`);
+  return true;
+}
+function autoQuestInput(s, dt) {
+  const story = s.story,
+    view = getStoryView(s),
+    p = s.player;
+  story.cooldown = Math.max(0, story.cooldown - dt);
+  if (story.cooldown > 0) return {};
+  if (view.status === 'finished') {
+    story.autoQuest = false;
+    s.auto = false;
+    story.status = 'finished';
+    notice(s, 'The lantern trail is complete. Aetheria remembers your journey.');
+    return {};
+  }
+  if (view.status === 'locked') {
+    story.status = `Reach Lv.${view.quest.minLevel} · hunting here`;
+    return autoInput(s, dt);
+  }
+  if (view.status === 'active' && view.quest.objective.kind === 'boss') {
+    story.autoQuest = false;
+    s.auto = false;
+    s.autoTarget = null;
+    story.status = 'manual-boss';
+    notice(s, 'Cinderroot needs manual dodges. AUTO-quest paused before the boss.');
+    return {};
+  }
+  const area = view.area;
+  if (s.currentArea !== area.id) {
+    const current = s.world.areas.find((a) => a.id === s.currentArea),
+      direction = area.x > current.x ? 1 : -1;
+    const next = s.world.areas.find((a) => a.x === current.x + direction * 1200);
+    const portal = current.portals.find((portal) => portal.targetArea === next?.id);
+    if (!portal || !s.unlockedAreas.includes(next.id)) {
+      story.status = 'The next gate is locked';
+      return {};
+    }
+    story.status = `Travel to ${area.name}`;
+    if (Math.hypot(center(p) - portal.x, p.y + p.h - portal.y) < 70) {
+      travelToArea(s, next.id);
+      story.cooldown = 0.4;
+      return {};
+    }
+    return questNavigation(s, dt, { ...portal, platformId: 'ground', type: 'waypoint' });
+  }
+  if (view.status === 'available' || view.status === 'ready') {
+    story.status =
+      view.status === 'ready' ? `Return to ${view.npc.name}` : `Speak to ${view.npc.name}`;
+    if (nearGiver(s, view)) {
+      const changed =
+        view.status === 'ready' ? turnInStoryQuest(s) : acceptStoryQuest(s, view.quest.id);
+      if (changed) story.cooldown = 0.6;
+      return {};
+    }
+    return questNavigation(s, dt, { ...view.npc, platformId: 'ground', type: 'waypoint' });
+  }
+  story.status = view.description;
+  if (view.quest.objective.kind === 'visit')
+    return questNavigation(s, dt, { ...view.quest.objective.location, type: 'waypoint' });
+  const candidates = s.enemies.filter((e) => e.hp > 0 && matchesQuestEnemy(view.quest, e));
+  const node = p.platformId || s.autoNavigation.edge?.from;
+  if (
+    node &&
+    candidates.length &&
+    !candidates.some((e) => findRoute(s.navigation, node, e.platformId) !== null)
+  )
+    return haltQuestRoute(s);
+  if (!candidates.length) story.status = 'Waiting for quest creatures to return';
+  return autoInput(s, dt, { filter: (e) => matchesQuestEnemy(view.quest, e) });
+}
+function checkStoryVisit(s) {
+  const view = getStoryView(s);
+  if (view.status !== 'active' || view.quest.objective.kind !== 'visit') return;
+  const goal = view.quest.objective.location,
+    p = s.player;
+  if (
+    s.currentArea === view.quest.areaId &&
+    p.platformId === goal.platformId &&
+    Math.abs(center(p) - goal.x) < 50 &&
+    Math.abs(p.y + p.h - goal.y) < 40
+  )
+    recordStoryEvent(s, { kind: 'visit', questId: view.quest.id });
+}
 /** Pip works in both manual and AUTO modes. Flight never changes player physics. */
 function tickPet(s, dt) {
   const p = s.player,
@@ -1122,6 +1337,9 @@ function collect(s, input, dt) {
       if (d.type === 'gold') {
         p.gold += d.amount;
         floating(s, d.x, d.y, `+${d.amount}g`, '#ffe5a0');
+      } else if (d.type === 'quest') {
+        if (recordStoryEvent(s, { kind: 'collect', questId: d.questId }))
+          floating(s, d.x, d.y, 'QUEST +1', '#b9fff2');
       } else if (d.item) {
         p.inventory.push(d.item);
         notice(s, `Found ${d.item.name}`);
@@ -1158,6 +1376,11 @@ function frame(s, raw, dt) {
   if (p.hp <= 0) {
     if (p.deadTimer <= 0) {
       s.deaths++;
+      if (s.story.autoQuest) {
+        s.story.autoQuest = false;
+        s.auto = false;
+        s.story.status = 'fallen';
+      }
       p.deadTimer = 2.5;
       p.climbing = null;
       p.vx = 0;
@@ -1174,7 +1397,9 @@ function frame(s, raw, dt) {
   if (s.auto && manual) s.autoOverride = 2.5;
   else s.autoOverride = Math.max(0, s.autoOverride - dt);
   const usingAuto = s.auto && s.autoOverride === 0;
-  const input = usingAuto ? { ...autoInput(s, dt) } : { ...raw };
+  const input = usingAuto
+    ? { ...(s.story.autoQuest ? autoQuestInput(s, dt) : autoInput(s, dt)) }
+    : { ...raw };
   if (raw.attack) input.attack = true;
   for (const key of ['skill', 'skill2', 'skill3', 'skill4']) {
     if (raw[key] && !s.previousInput[key]) input[key] = true;
@@ -1182,6 +1407,7 @@ function frame(s, raw, dt) {
   }
   const jump = !!input.jump && (usingAuto || !s.previousInput.jump);
   physics(s, input, jump, dt);
+  checkStoryVisit(s);
   if (raw.interact && !s.previousInput.interact) interactWorld(s);
   combat(s, input);
   tickEnemies(s, dt);

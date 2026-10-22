@@ -396,3 +396,74 @@ test('supply shop spends real gold on potions and persistent training', async ({
   expect(s.upgrades.vitality).toBe(1);
   expect(s.player.maxHp).toBe(205);
 });
+
+test('NPC dialogue accepts a mission, AUTO-quest makes real progress and reload stops automation', async ({
+  page,
+}) => {
+  await launch(page);
+  await page.keyboard.press('e');
+  await expect(page.getByRole('heading', { name: 'Elder Rowan', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Lanterns for the lost', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Accept quest', exact: true }).click();
+  expect((await snapshot(page)).story.activeId).toBe('glade-jellies');
+  await page.getByRole('button', { name: 'Follow quest', exact: true }).click();
+  await expect
+    .poll(async () => (await snapshot(page)).story.progress, { timeout: 15000 })
+    .toBeGreaterThan(0);
+  await page.waitForFunction(
+    () => JSON.parse(localStorage.getItem('aetherstory_v4')).story.progress > 0,
+  );
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('aetherstory_v4')).story);
+  await page.reload();
+  await page.waitForFunction(() => window.aetherStory);
+  await page.keyboard.press('Enter');
+  const restored = await snapshot(page);
+  expect(restored.story.activeId).toBe(saved.activeId);
+  expect(restored.story.progress).toBeGreaterThanOrEqual(saved.progress);
+  expect(restored.story.autoQuest).toBe(false);
+});
+test('completed NPC mission pays once and the next story offer appears', async ({ page }) => {
+  const game = createGame({ story: { activeId: 'glade-jellies', progress: 6 } });
+  await seedProgress(page, serializeGame(game));
+  await launch(page);
+  await page.keyboard.press('e');
+  await page.getByRole('button', { name: 'Turn in quest', exact: true }).click();
+  const done = await snapshot(page);
+  expect(done.story.completed).toEqual(['glade-jellies']);
+  expect(done.player.gold).toBe(400);
+  await expect(
+    page.getByRole('heading', { name: 'A pocketful of light', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Turn in quest', exact: true })).toHaveCount(0);
+  await page.reload();
+  await launch(page);
+  expect((await snapshot(page)).player.gold).toBe(400);
+});
+for (const [width, height, name] of [
+  [844, 390, 'landscape'],
+  [390, 844, 'portrait'],
+])
+  test(`quest journal and tracker work on phone ${name}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await launch(page);
+    await expect(page.locator('.story-strip')).toBeVisible();
+    const box = await page.locator('.story-strip').boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(box.y + box.height).toBeLessThan(height * 0.5);
+    await page.getByRole('button', { name: 'Quests', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'The lantern trail', exact: true }),
+    ).toBeVisible();
+    await expect(page.locator('.story-list .story-entry')).toHaveCount(12);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: `docs/qa/quests-${name}.png` });
+    await page.keyboard.press('Escape');
+    await page.locator('.story-strip [data-action="follow-quest"]').click();
+    await expect.poll(async () => (await snapshot(page)).story.autoQuest).toBe(true);
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: `docs/qa/quest-tracker-${name}.png` });
+  });

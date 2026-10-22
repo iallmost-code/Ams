@@ -1,3 +1,4 @@
+import { normalizeStoryProgress } from './game/quests.js';
 /** Local-only, versioned progress. Storage failures must never stop a session. */
 export const SAVE_VERSION = 4;
 export const SAVE_KEY = 'aetherstory_v4';
@@ -169,6 +170,7 @@ function normalize(value) {
     ),
     unlockedAreas,
     quest: { kills, target, completed, claimed: completed && quest.claimed === true },
+    story: normalizeStoryProgress(value.story),
     classId: choice(value.classId, ['vanguard', 'arcanist', 'nightblade', 'ranger'], 'vanguard'),
     damageSkin: choice(value.damageSkin, ['amber', 'sakura', 'frost', 'cyber', 'solar'], 'amber'),
     starCores: number(value.starCores, 0, 1e9, 5),

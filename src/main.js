@@ -14,6 +14,11 @@ import {
   forgeItem,
   buyPotion,
   buyUpgrade,
+  getStoryView,
+  acceptStoryQuest,
+  turnInStoryQuest,
+  toggleAutoQuest,
+  talkToNpc,
   salvageItem,
 } from './game/engine.js';
 import { Renderer } from './renderer.js';
@@ -81,6 +86,7 @@ function openPanel(name) {
 }
 
 function closePanel() {
+  state.dialogueNpcId = null;
   ui.closePanel();
   state.paused = false;
   clearInput();
@@ -120,6 +126,8 @@ async function onAction(action, payload) {
     case 'close':
       closePanel();
       break;
+    case 'quests':
+    case 'dialogue':
     case 'shop':
     case 'inventory':
     case 'character':
@@ -137,6 +145,22 @@ async function onAction(action, payload) {
     case 'potion':
       usePotion(state);
       persist();
+      break;
+    case 'accept-story':
+      acceptStoryQuest(state, payload);
+      persist();
+      break;
+    case 'turn-in-story':
+      turnInStoryQuest(state);
+      persist();
+      break;
+    case 'follow-quest':
+      toggleAutoQuest(state);
+      closePanel();
+      persist();
+      break;
+    case 'talk-npc':
+      if (talkToNpc(state, payload)) openPanel('dialogue');
       break;
     case 'claim':
       claimQuest(state);
@@ -221,6 +245,8 @@ window.aetherStory = Object.freeze({
       damageSkin: state.damageSkin,
       kills: state.kills,
       quest: state.quest,
+      story: state.story,
+      storyView: getStoryView(state),
       starCores: state.starCores,
       sp: state.sp,
       skillLevels: state.skillLevels,
@@ -279,6 +305,10 @@ function frame(now) {
     input.clear();
     stepper.reset();
   }
+  if (started && state.dialogueNpcId && !ui.isModalOpen()) {
+    openPanel('dialogue');
+    persist();
+  }
   renderer.render(state, elapsed);
   hudElapsed += elapsed;
   if (hudElapsed >= 0.08) {
@@ -295,6 +325,18 @@ function frame(now) {
   frameId = requestAnimationFrame(frame);
 }
 
+const canvas = document.getElementById('game-canvas');
+function tapGuide(event) {
+  if (!started || state.paused || ui.isModalOpen()) return;
+  const rect = canvas.getBoundingClientRect();
+  const wx = ((event.clientX - rect.left) * renderer.width) / rect.width + renderer.camera.x;
+  const wy = ((event.clientY - rect.top) * renderer.height) / rect.height + renderer.camera.y;
+  const guide = state.world.areas
+    .map((a) => a.npc)
+    .find((n) => n && Math.abs(wx - n.x) < 36 && wy > n.y - 100 && wy < n.y + 15);
+  if (guide) onAction('talk-npc', guide.id);
+}
+canvas.addEventListener('pointerup', tapGuide);
 window.addEventListener('resize', () => {
   renderer.resize();
   clearInput();
@@ -342,6 +384,7 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   const actions = {
+    q: 'quests',
     t: 'auto',
     b: 'auto',
     i: 'inventory',
@@ -387,6 +430,7 @@ if (
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
     cancelAnimationFrame(frameId);
+    canvas.removeEventListener('pointerup', tapGuide);
     input.destroy();
     ui.destroy();
     audio.ctx?.close();

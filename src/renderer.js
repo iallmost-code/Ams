@@ -1,3 +1,4 @@
+import { getStoryView } from './game/quests.js';
 import { valleyArt, heroArt, creatureArt, cavernArt, altarArt, pipArt } from './art.js';
 /** Original AetherStory M illustration. All artwork is drawn locally with Canvas. */
 const TAU = Math.PI * 2;
@@ -169,6 +170,7 @@ export class Renderer {
     for (const rope of world.ropes || []) if (this.visible(rope.x, 80)) this.drawRope(rope);
     for (const platform of world.platforms || [])
       if (this.visible(platform.x, platform.w)) this.drawPlatform(platform);
+    this.drawStoryBeacon();
     for (const drop of state.drops || []) if (this.visible(drop.x, 30)) this.drawDrop(drop);
     for (const effect of state.effects || [])
       if (this.visible(effect.x, 250)) this.drawEffect(effect, false);
@@ -495,46 +497,80 @@ export class Renderer {
     c.save();
     c.translate(npc.x, npc.y);
     ellipse(c, 0, -2, 20, 5, '#253e4660');
-    path(c, 'M-12 -31 Q-22 -14 -16 -3 L17 -3 Q19 -18 11 -31Z', '#5b6e95', '#2d464f', 2);
-    path(c, 'M-9 -23 L-4 -4 L5 -4 L11 -25', '#b5ad88', '#3d5361', 1.5);
-    ellipse(c, 0, -39, 13, 15, '#ecc5a2', '#624f4a', 1.5);
-    path(
-      c,
-      'M-12 -37 Q-10 -19 0 -17 Q12 -24 12 -37 L5 -33 L0 -35 L-4 -32Z',
-      '#eee7cd',
-      '#b5bba4',
-      1,
-    );
-    ellipse(c, -5, -41, 1.5, 2, '#39484a');
-    ellipse(c, 5, -41, 1.5, 2, '#39484a');
-    path(
-      c,
-      'M-17 -48 Q-8 -55 -7 -62 Q4 -56 10 -56 L17 -47 Q0 -42 -17 -48Z',
-      '#596f7f',
-      '#344f59',
-      2,
-    );
-    line(
-      c,
-      [
-        [17, -4],
-        [21, -43],
-        [26, -48],
-      ],
-      '#aa8960',
-      3,
-    );
+    if (npc.portrait !== undefined && heroArt.frames[npc.portrait * 4]) {
+      c.drawImage(heroArt.frames[npc.portrait * 4], -44, -88, 88, 88);
+    } else {
+      path(c, 'M-12 -31 Q-22 -14 -16 -3 L17 -3 Q19 -18 11 -31Z', '#5b6e95', '#2d464f', 2);
+      path(c, 'M-9 -23 L-4 -4 L5 -4 L11 -25', '#b5ad88', '#3d5361', 1.5);
+      ellipse(c, 0, -39, 13, 15, '#ecc5a2', '#624f4a', 1.5);
+      path(
+        c,
+        'M-12 -37 Q-10 -19 0 -17 Q12 -24 12 -37 L5 -33 L0 -35 L-4 -32Z',
+        '#eee7cd',
+        '#b5bba4',
+        1,
+      );
+      ellipse(c, -5, -41, 1.5, 2, '#39484a');
+      ellipse(c, 5, -41, 1.5, 2, '#39484a');
+      path(
+        c,
+        'M-17 -48 Q-8 -55 -7 -62 Q4 -56 10 -56 L17 -47 Q0 -42 -17 -48Z',
+        '#596f7f',
+        '#344f59',
+        2,
+      );
+      line(
+        c,
+        [
+          [17, -4],
+          [21, -43],
+          [26, -48],
+        ],
+        '#aa8960',
+        3,
+      );
+    }
     c.font = 'bold 10px Georgia';
     c.textAlign = 'center';
     c.fillStyle = '#fff0bd';
-    c.fillText(npc.name, 0, -73);
+    c.fillText(npc.name, 0, -91);
     c.fillStyle = '#f4d986';
     c.font = 'bold 17px Georgia';
     c.fillText(
-      this.state.quest?.completed && !this.state.quest?.claimed ? '?' : '!',
+      getStoryView(this.state).quest?.giverId === npc.id
+        ? { ready: '?', available: '!', locked: '◇' }[getStoryView(this.state).status] || '·'
+        : '·',
       0,
-      -91 + Math.sin(this.t * 2) * 3,
+      -109 + Math.sin(this.t * 2) * 3,
     );
+    c.restore();
+  }
+  drawStoryBeacon() {
+    const view = getStoryView(this.state),
+      loc = view.quest?.objective.location;
+    if (view.status !== 'active' || !loc || !this.visible(loc.x, 100)) return;
+    const c = this.ctx;
+    c.save();
+    c.translate(loc.x, loc.y);
+    glow(c, 0, -35, 58, '#ffe4a955');
+    line(
+      c,
+      [
+        [0, 0],
+        [0, -42],
+      ],
+      '#8d7353',
+      5,
+    );
+    path(c, 'M-12 -48 L0 -58 L12 -48 L9 -28 L-9 -28Z', '#ffe1a0', '#705e49', 2);
+    star(c, 0, -40, 7, '#fffbe4');
+    c.font = 'bold 11px Georgia';
+    c.textAlign = 'center';
+    c.lineWidth = 3;
+    c.strokeStyle = '#182b35';
+    c.strokeText(loc.name, 0, -68);
+    c.fillStyle = '#fff0b6';
+    c.fillText(loc.name, 0, -68);
     c.restore();
   }
   drawPortal(portal, world) {
@@ -1545,6 +1581,10 @@ export class Renderer {
         '#c29747',
         1.5,
       );
+    } else if (drop.type === 'quest') {
+      glow(c, 0, 0, 28, '#ffe3a477');
+      path(c, 'M-4 -12 L4 -12 L4 -7 Q14 5 5 10 L-5 10 Q-14 5 -4 -7Z', '#9ae8d6', '#ffe3a4', 2);
+      star(c, 0, 1, 5, '#fff7c4');
     } else {
       glow(c, 0, 0, 24, drop.item?.rarity === 'epic' ? '#d49fff55' : '#9fffe54d');
       path(c, 'M -8 -8 L 8 -8 L 10 6 L 0 11 L -10 6 Z', '#d1e4c2', '#4d7e74', 2);
