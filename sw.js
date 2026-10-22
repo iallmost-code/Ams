@@ -1,7 +1,7 @@
 // Generated from the exact production build. No network dependencies.
 const OWN_PREFIX='aetherstory-m:'+self.registration.scope+':';
-const CACHE=OWN_PREFIX+"13faf095ac8b0404";
-const ASSETS=["./assets/index-B39WvYPj.css","./assets/index-CsRgSEbx.js","./icons/icon-192.png","./icons/icon-512.png","./icons/icon.svg","./index.html","./manifest.webmanifest"];
+const CACHE=OWN_PREFIX+"ad996ad6eddd1c61";
+const ASSETS=["./assets/index-DGP5975L.css","./assets/index-DtOGnXAa.js","./icons/icon-192.png","./icons/icon-512.png","./icons/icon.svg","./index.html","./manifest.webmanifest"];
 const SCOPE=self.registration.scope;
 const INDEX=new URL('./index.html',SCOPE).href;
 const URLS=ASSETS.map(path=>new URL(path,SCOPE).href);
