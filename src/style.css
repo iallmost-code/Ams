@@ -2709,3 +2709,147 @@ button {
     font-size: 8px;
   }
 }
+
+/* Bright parchment and jewel tones match the new illustrated sprite world. */
+.identity.glass {
+  color: #56361f;
+  background: linear-gradient(#fff7dcf5, #f0d6a9f0);
+  border: 2px solid #a47742;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 0 #65472755,
+    0 3px 12px #57382430;
+}
+.identity .class-name {
+  color: #89603b;
+}
+.identity .portrait {
+  background-image: url('./assets/adventurers.webp');
+  background-size: 400% 400%;
+  background-position: 0 var(--portrait-row, 0%);
+  background-color: #f3e6bc;
+  border-color: #c29454;
+  box-shadow: inset 0 0 8px #9c763955;
+}
+.identity .portrait svg {
+  visibility: hidden;
+}
+.identity .vital {
+  border: 1px solid #a77b5a;
+  height: 12px;
+  background: #614a40;
+}
+.identity .vital span {
+  font-size: 8px;
+  line-height: 10px;
+}
+.identity .vital.hp i {
+  background: linear-gradient(#ff9f89, #ed534b 50%, #cf3a41);
+}
+.identity .vital.mp i {
+  background: linear-gradient(#92e3ff, #429fe0 50%, #3571c6);
+}
+.quick-nav button {
+  background: linear-gradient(#fff4d9eb, #e8c78fe8);
+  border: 1px solid #9d7345;
+  color: #694324;
+  box-shadow:
+    inset 0 1px 0 white,
+    0 2px 0 #75503555;
+}
+.quick-nav button small {
+  color: #6a4728;
+}
+.journey .brand {
+  color: #fff5d3;
+  text-shadow:
+    0 2px 0 #855638,
+    1px 0 #855638,
+    -1px 0 #855638,
+    0 3px 8px #53362280;
+}
+.minimap.glass {
+  background: #fff1cdde;
+  border: 2px solid #ad7d44;
+  color: #704f2e;
+}
+.minimap .map-caption {
+  color: #704f2e;
+}
+.auto-button {
+  background: linear-gradient(#fff3c9, #e6bc73);
+  color: #764619;
+  border-color: #a66c32;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 0 #6b492c55;
+}
+.auto-button.active {
+  background: linear-gradient(#ffe989, #f8b946);
+  color: #6d370c;
+  border-color: #a66c32;
+}
+.auto-button small {
+  color: inherit;
+}
+.attack-button {
+  background: radial-gradient(circle at 35% 25%, #fff5b1, #ffb23e 48%, #d77326);
+  border: 3px solid #fff4d0;
+  box-shadow:
+    0 0 0 2px #a66c32,
+    0 5px 12px #6c431c55,
+    inset 0 2px 3px #fff9c9;
+}
+.skill {
+  background: radial-gradient(circle at 35% 25%, #a4efff, #439de1 50%, #4653a8);
+  border-color: #f9e8b6;
+  color: #fff;
+  box-shadow:
+    0 0 0 1px #8e6d48,
+    0 4px 8px #1e458855,
+    inset 0 2px 0 #ffffff80;
+}
+.skill-1 {
+  background: radial-gradient(circle at 35% 25%, #eff4ff, #8b9eef 45%, #7850a4);
+}
+.skill-2 {
+  background: radial-gradient(circle at 35% 25%, #f8dbff, #c77be5 45%, #6e429a);
+}
+.skill-3 {
+  background: radial-gradient(circle at 35% 25%, #ffffcc, #efae4b 45%, #c46442);
+}
+.pet-status {
+  background: #fff4dce8;
+  color: #74502f;
+  border-color: #b99461;
+  box-shadow: 0 2px 0 #75503530;
+}
+.pet-status b {
+  color: #54809e;
+}
+.joystick-ring {
+  background: radial-gradient(circle, #f1d49366, #b4a07155 60%, #756e5560);
+  border-color: #ffe6afb0;
+  box-shadow:
+    inset 0 0 0 8px #fff6ce1c,
+    0 4px 12px #70543740;
+}
+.joystick-thumb {
+  background: radial-gradient(circle at 35% 25%, #fffbdd, #efcf82 45%, #bd8f48 85%);
+  border-color: #fffae1;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .journey .brand {
+    font-size: 20px;
+  }
+  .journey > span {
+    display: none;
+  }
+  .notice {
+    top: 30%;
+  }
+  .identity .vital span {
+    font-size: 7px;
+    line-height: 10px;
+  }
+}
