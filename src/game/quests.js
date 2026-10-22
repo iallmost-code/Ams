@@ -44,6 +44,65 @@ export const STORY_QUESTS = [
       { x: 850, y: 365, platformId: '0-high', name: 'Watchlight beacon' },
     ],
   ]),
+  ...chapter('emerald_glade', 'rowan', 3, [
+    [
+      'glade-pathfinders',
+      'Footprints in the dew',
+      'hunt',
+      12,
+      'slime',
+      'Lyra left fresh trail marks. Clear twelve jellies before they swallow her footprints.',
+      { xp: 200, gold: 90, cores: 0 },
+    ],
+  ]),
+  ...chapter('emerald_glade', 'rowan', 5, [
+    [
+      'glade-wick',
+      'A wick for every window',
+      'collect',
+      8,
+      'mushroom',
+      'Bring eight starcap embers to Rowan. Each one will light a window along Lyra’s road.',
+      { xp: 350, gold: 110, cores: 1 },
+    ],
+  ]),
+  ...chapter('emerald_glade', 'rowan', 6, [
+    [
+      'glade-signal',
+      'The windward signal',
+      'visit',
+      1,
+      null,
+      'Climb to the mid-glade signal lantern. Lyra needs to know the old ropes are safe.',
+      { xp: 550, gold: 120, cores: 0 },
+      { x: 600, y: 520, platformId: '0-mid', name: 'Windward lantern' },
+    ],
+  ]),
+  ...chapter('emerald_glade', 'rowan', 8, [
+    [
+      'glade-gloamcap',
+      'The lantern thief',
+      'hunt',
+      1,
+      'mushroom',
+      'Gloamcap has stolen the watchlight’s flame. Find the crowned starcap on the low glade platform and win it back.',
+      { xp: 800, gold: 180, cores: 1, tonics: 2 },
+    ],
+  ]).map((q) => ({
+    ...q,
+    objective: { ...q.objective, enemyId: 'enemy-0-3', enemyName: 'Gloamcap, the Lantern Thief' },
+  })),
+  ...chapter('emerald_glade', 'rowan', 9, [
+    [
+      'glade-farewell',
+      'A light for Lyra',
+      'hunt',
+      6,
+      'boar',
+      'Clear six thornback sentinels from the upper glade. At level ten, carry our lantern trail to Scout Lyra.',
+      { xp: 1100, gold: 150, cores: 1 },
+    ],
+  ]),
   ...chapter('whispering_canopy', 'lyra', 10, [
     [
       'canopy-trail',
@@ -137,8 +196,23 @@ export const STORY_QUESTS = [
 ];
 export function normalizeStoryProgress(value) {
   const input = value && typeof value === 'object' ? value : {};
+  // Old journal saves used twelve missions. Preserve their completed chapters and active
+  // objectives when inserting the five new Glade missions; never pay skipped rewards.
+  const bridgeIds = STORY_QUESTS.filter((q) => q.areaId === 'emerald_glade' && q.minLevel > 1).map(
+    (q) => q.id,
+  );
+  const legacy = STORY_QUESTS.filter((q) => !bridgeIds.includes(q.id));
+  let ids = Array.isArray(input.completed) ? input.completed : [];
+  const legacyPrefix = ids.every((id, i) => id === legacy[i]?.id);
+  if (
+    input.revision !== 2 &&
+    legacyPrefix &&
+    ids.length >= 3 &&
+    (ids.length > 3 || legacy.some((q) => q.id === input.activeId && q.areaId !== 'emerald_glade'))
+  )
+    ids = [...ids.slice(0, 3), ...bridgeIds, ...ids.slice(3)];
   const completed = [];
-  for (const id of Array.isArray(input.completed) ? input.completed : []) {
+  for (const id of ids) {
     if (id !== STORY_QUESTS[completed.length]?.id) break;
     completed.push(id);
   }
@@ -148,7 +222,7 @@ export function normalizeStoryProgress(value) {
     activeId && Number.isFinite(input.progress)
       ? Math.max(0, Math.min(next.objective.count, Math.floor(input.progress)))
       : 0;
-  return { completed, activeId, progress };
+  return { revision: 2, completed, activeId, progress };
 }
 export function createStory(value) {
   return {
@@ -177,7 +251,7 @@ export function getStoryView(state) {
   const objective = quest.objective;
   const description =
     status === 'locked'
-      ? `Reach Lv.${quest.minLevel} to continue`
+      ? `Next: ${quest.title} · Lv.${quest.minLevel} · ${state.daily?.claimed.length < 3 ? 'try a daily bounty' : 'train on the lantern trail'}`
       : status === 'available'
         ? `Speak to ${npc?.name || 'your guide'}`
         : status === 'ready'
@@ -195,7 +269,7 @@ export function getStoryView(state) {
     description,
     progress: story.progress,
     total: STORY_QUESTS.length,
-    chapter: Math.floor(story.completed.length / 3) + 1,
+    chapter: state.world.areas.findIndex((a) => a.id === quest.areaId) + 1,
   };
 }
 export function matchesQuestEnemy(quest, enemy) {
@@ -210,7 +284,8 @@ export function matchesQuestEnemy(quest, enemy) {
         quest.areaId
       ] &&
     (quest.objective.kind === 'boss' ? enemy.isBoss : !enemy.isBoss) &&
-    (!quest.objective.enemyType || enemy.type === quest.objective.enemyType)
+    (!quest.objective.enemyType || enemy.type === quest.objective.enemyType) &&
+    (!quest.objective.enemyId || enemy.id === quest.objective.enemyId)
   );
 }
 export function recordStoryEvent(state, event) {

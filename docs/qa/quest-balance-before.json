@@ -1,0 +1,118 @@
+{
+  "freshStarterAuto": {
+    "seconds": 3600,
+    "level": 12,
+    "gold": 25689,
+    "kills": 1953,
+    "deaths": 0,
+    "timeTo10": 1703,
+    "timeTo25": null,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 7,
+        "gold": 4512,
+        "deaths": 0
+      },
+      "900": {
+        "level": 8,
+        "gold": 6618,
+        "deaths": 0
+      },
+      "1800": {
+        "level": 10,
+        "gold": 12936,
+        "deaths": 0
+      },
+      "3600": {
+        "level": 12,
+        "gold": 25689,
+        "deaths": 0
+      }
+    }
+  },
+  "progressionWithPurchases": {
+    "seconds": 14400,
+    "level": 25,
+    "gold": 89422,
+    "kills": 4753,
+    "deaths": 14,
+    "timeTo10": 1742,
+    "timeTo25": 13743,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 7,
+        "gold": 1092,
+        "deaths": 0,
+        "goldSpent": 7034
+      },
+      "900": {
+        "level": 8,
+        "gold": 1840,
+        "deaths": 0,
+        "goldSpent": 10221
+      },
+      "1800": {
+        "level": 10,
+        "gold": 1106,
+        "deaths": 0,
+        "goldSpent": 23109
+      },
+      "3600": {
+        "level": 15,
+        "gold": 1339,
+        "deaths": 0,
+        "goldSpent": 58026
+      }
+    },
+    "goldSpent": 176176,
+    "upgrades": {
+      "vitality": 6,
+      "mastery": 6
+    },
+    "area": "crystal_cavern"
+  },
+  "starterGearBossArena": {
+    "seconds": 3600,
+    "level": 20,
+    "gold": 300,
+    "kills": 0,
+    "deaths": 1,
+    "timeTo10": null,
+    "timeTo25": null,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      },
+      "900": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      },
+      "1800": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      },
+      "3600": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      }
+    }
+  },
+  "gearedBossWithDodges": {
+    "killed": 139.43333333333334,
+    "deaths": 0,
+    "hp": 912,
+    "maxHp": 912,
+    "attack": 278,
+    "defense": 253,
+    "bossHp": 0,
+    "hits": 0
+  }
+}

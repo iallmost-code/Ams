@@ -15,6 +15,10 @@ import {
   buyPotion,
   buyUpgrade,
   getStoryView,
+  getDailyView,
+  refreshDailyBounties,
+  acceptDailyBounty,
+  claimDailyBounty,
   acceptStoryQuest,
   turnInStoryQuest,
   toggleAutoQuest,
@@ -146,6 +150,14 @@ async function onAction(action, payload) {
       usePotion(state);
       persist();
       break;
+    case 'accept-daily':
+      acceptDailyBounty(state, payload);
+      persist();
+      break;
+    case 'claim-daily':
+      claimDailyBounty(state);
+      persist();
+      break;
     case 'accept-story':
       acceptStoryQuest(state, payload);
       persist();
@@ -246,6 +258,8 @@ window.aetherStory = Object.freeze({
       kills: state.kills,
       quest: state.quest,
       story: state.story,
+      daily: state.daily,
+      dailyView: getDailyView(state),
       storyView: getStoryView(state),
       starCores: state.starCores,
       sp: state.sp,
@@ -288,9 +302,18 @@ window.aetherStory = Object.freeze({
   },
 });
 
+let dailyRefreshElapsed = 0;
 function frame(now) {
   const elapsed = Math.max(0, Math.min((now - lastFrame) / 1000, 0.1));
   lastFrame = now;
+  dailyRefreshElapsed += elapsed;
+  if (dailyRefreshElapsed >= 1) {
+    dailyRefreshElapsed = 0;
+    if (refreshDailyBounties(state)) {
+      persist();
+      ui.update(state);
+    }
+  }
   const paused = !started || state.paused || ui.isModalOpen() || document.hidden;
   if (!paused) {
     stepper.advance(elapsed, input.sample());

@@ -7,3 +7,5 @@ Approved scope: NPC dialogue, tracked quest chains, navigation to objectives and
 3. Add a journal/dialogue panel and compact phone objective strip. NPCs show appropriate offer/turn-in markers. AUTO-quest requires an explicit opt-in and never resumes automatically from a loaded save.
 4. Verify complete first-chapter automation with actual movement, loot and turn-ins, portal traversal, death/boss safety, persistence and mobile controls. Run unit/build/browser tests and refresh the portable HTML/QA/screenshots.
 5. Push only the new source branch and open a PR into main. PR #3 was merged separately during implementation; this feature PR introduces only the quest expansion. No feature-branch publishing or main merge.
+
+PR #4 follow-up: implemented five Glade bridge missions at levels 3/5/6/8/9 and a named mini-boss, three local-midnight daily bounties carried by every area guide, clearer tracker/readable labels, a session-only portrait hint, revisioned journal migration, balance/gap regressions, and refreshed phone captures. Verified timings and limits are in docs/QA.md. This follow-up stays on the same branch and PR; no merge or publishing.

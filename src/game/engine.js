@@ -1,3 +1,5 @@
+import { normalizeDaily, refreshDailyBounties, getDailyView, recordDailyDefeat } from './daily.js';
+export { refreshDailyBounties, getDailyView } from './daily.js';
 import {
   STORY_QUESTS,
   createStory,
@@ -175,7 +177,7 @@ function advance(s) {
   }
   unlock(s);
 }
-export function createGame(progress = null) {
+export function createGame(progress = null, now = new Date()) {
   const world = createWorld(),
     saved = progress && typeof progress === 'object' ? progress : {};
   const equipment = {
@@ -301,6 +303,7 @@ export function createGame(progress = null) {
     paused: false,
     kills: 0,
     story: createStory(saved.story),
+    daily: normalizeDaily(saved.daily),
     dialogueNpcId: null,
     quest: {
       kills: 0,
@@ -344,6 +347,8 @@ export function createGame(progress = null) {
         .filter(Boolean)
         .map((i) => Number(/^(?:loot|drop)-(\d+)$/.exec(i.id)?.[1] || 0)),
     );
+  refreshDailyBounties(s, now);
+  prepareStoryEncounter(s);
   recalculate(s, true);
   unlock(s);
   if (saved.currentArea && s.unlockedAreas.includes(saved.currentArea))
@@ -426,6 +431,52 @@ function nearGiver(s, view = getStoryView(s)) {
     !!n && s.currentArea === view.quest.areaId && Math.hypot(center(p) - n.x, p.y + p.h - n.y) < 80
   );
 }
+function prepareStoryEncounter(s) {
+  const view = getStoryView(s),
+    q = view.quest;
+  if (view.status !== 'active' || !q.objective.enemyId) return;
+  const e = s.enemies.find((e) => e.id === q.objective.enemyId);
+  if (!e || e.isElite) return;
+  e.encounterBase = { maxHp: e.maxHp, damage: e.damage, level: e.level };
+  Object.assign(e, {
+    name: q.objective.enemyName,
+    isElite: true,
+    hp: 600,
+    maxHp: 600,
+    damage: 45,
+    level: 8,
+    respawnTimer: 0,
+    rewarded: false,
+    deathTimer: 0,
+  });
+}
+function nearDailyGuide(s) {
+  const guide = s.world.areas.find((a) => a.id === s.currentArea)?.npc,
+    p = s.player;
+  return !!guide && p.hp > 0 && Math.hypot(center(p) - guide.x, p.y + p.h - guide.y) < 80;
+}
+export function acceptDailyBounty(s, id, now = new Date()) {
+  refreshDailyBounties(s, now);
+  const view = getDailyView(s);
+  if (view.status !== 'available' || !nearDailyGuide(s) || (id && id !== view.bounty.id))
+    return false;
+  s.daily.activeId = view.bounty.id;
+  s.daily.progress = 0;
+  notice(s, `Rowan’s daily: ${view.bounty.title}`);
+  return true;
+}
+export function claimDailyBounty(s, now = new Date()) {
+  refreshDailyBounties(s, now);
+  const view = getDailyView(s);
+  if (view.status !== 'ready' || !nearDailyGuide(s)) return false;
+  s.daily.claimed.push(view.bounty.id);
+  s.daily.activeId = null;
+  s.daily.progress = 0;
+  s.player.gold += view.bounty.gold;
+  s.starCores += view.bounty.cores;
+  notice(s, `Daily complete · +${view.bounty.gold} gold · +${view.bounty.cores} cores`);
+  return true;
+}
 export function acceptStoryQuest(s, id) {
   const view = getStoryView(s);
   if (
@@ -436,6 +487,7 @@ export function acceptStoryQuest(s, id) {
   )
     return false;
   s.story.activeId = id;
+  prepareStoryEncounter(s);
   s.story.progress = 0;
   s.story.lastDialogue = view.quest.offer[0];
   notice(s, `${view.npc.name}: ${view.quest.title}`);
@@ -611,6 +663,7 @@ export function serializeGame(s, settings = s.settings) {
     unlockedAreas: s.unlockedAreas,
     quest: s.quest,
     story: normalizeStoryProgress(s.story),
+    daily: normalizeDaily(s.daily),
     classId: s.classId,
     damageSkin: s.damageSkin,
     starCores: s.starCores,
@@ -647,6 +700,7 @@ function reward(s, e) {
   e.respawnTimer = e.isBoss ? 35 : 9;
   s.kills++;
   recordStoryEvent(s, { kind: 'defeat', enemy: e });
+  recordDailyDefeat(s, e);
   const active = getStoryView(s);
   if (
     active.status === 'active' &&
@@ -811,6 +865,15 @@ function tickEnemies(s, dt) {
       e.deathTimer = Math.max(0, e.deathTimer - dt);
       e.respawnTimer -= dt;
       if (e.respawnTimer <= 0) {
+        if (e.encounterBase) {
+          const view = getStoryView(s);
+          if (view.status !== 'active' || view.quest.objective.enemyId !== e.id) {
+            Object.assign(e, e.encounterBase);
+            delete e.encounterBase;
+            delete e.name;
+            delete e.isElite;
+          }
+        }
         e.hp = e.maxHp;
         e.rewarded = false;
         e.deathTimer = 0;
@@ -1217,7 +1280,18 @@ function autoQuestInput(s, dt) {
     return {};
   }
   if (view.status === 'locked') {
-    story.status = `Reach Lv.${view.quest.minLevel} · hunting here`;
+    story.status = view.description;
+    const daily = getDailyView(s),
+      guide = s.world.areas.find((a) => a.id === s.currentArea)?.npc;
+    if (guide && ['available', 'ready'].includes(daily.status)) {
+      if (nearDailyGuide(s)) {
+        if (daily.status === 'ready') claimDailyBounty(s);
+        else acceptDailyBounty(s);
+        story.cooldown = 0.6;
+        return {};
+      }
+      return questNavigation(s, dt, { ...guide, platformId: 'ground', type: 'waypoint' });
+    }
     return autoInput(s, dt);
   }
   if (view.status === 'active' && view.quest.objective.kind === 'boss') {

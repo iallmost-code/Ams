@@ -456,7 +456,7 @@ for (const [width, height, name] of [
     await expect(
       page.getByRole('heading', { name: 'The lantern trail', exact: true }),
     ).toBeVisible();
-    await expect(page.locator('.story-list .story-entry')).toHaveCount(12);
+    await expect(page.locator('.story-list .story-entry')).toHaveCount(17);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
@@ -467,3 +467,86 @@ for (const [width, height, name] of [
     await page.waitForTimeout(1500);
     await page.screenshot({ path: `docs/qa/quest-tracker-${name}.png` });
   });
+
+test('portrait hint stays clear of the area label and appears only once per session', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await launch(page);
+  const tip = page.locator('.portrait-tip');
+  await expect(tip).toBeVisible();
+  const a = await tip.boundingBox(),
+    b = await page.locator('.area-pill').boundingBox();
+  expect(
+    a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y,
+  ).toBe(true);
+  await expect(tip).toBeHidden({ timeout: 9000 });
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(tip).toBeHidden();
+  await page.reload();
+  await page.waitForFunction(() => window.aetherStory);
+  await page.keyboard.press('Enter');
+  await expect(tip).toBeHidden();
+});
+test('Rowan daily board accepts, pays once and preserves the daily limit after reload', async ({
+  page,
+}) => {
+  const game = createGame();
+  const { localDay, DAILY_BOUNTIES } = await import('../../src/game/daily.js');
+  game.daily = {
+    day: localDay(),
+    claimed: [],
+    activeId: DAILY_BOUNTIES[0].id,
+    progress: DAILY_BOUNTIES[0].count,
+  };
+  await seedProgress(page, serializeGame(game));
+  await launch(page);
+  await page.keyboard.press('e');
+  await expect(
+    page.getByRole('heading', { name: 'Rowan’s daily board', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Claim daily bounty', exact: true }).click();
+  const done = await snapshot(page);
+  expect(done.daily.claimed).toHaveLength(1);
+  expect(done.player.gold).toBe(360);
+  await expect(page.getByRole('button', { name: 'Claim daily bounty', exact: true })).toHaveCount(
+    0,
+  );
+  await page.reload();
+  await launch(page);
+  expect((await snapshot(page)).daily.claimed).toHaveLength(1);
+  expect((await snapshot(page)).player.gold).toBe(360);
+});
+
+for (const [width, height, name] of [
+  [844, 390, 'landscape'],
+  [390, 844, 'portrait'],
+]) {
+  test(`locked quest names the next mission and offers Rowan daily board on phone ${name}`, async ({
+    page,
+  }) => {
+    const { STORY_QUESTS } = await import('../../src/game/quests.js');
+    const game = createGame({
+      player: { level: 4 },
+      story: { revision: 2, completed: STORY_QUESTS.slice(0, 4).map((q) => q.id) },
+    });
+    await seedProgress(page, serializeGame(game));
+    await page.setViewportSize({ width, height });
+    await launch(page);
+    await expect(page.locator('.story-strip-title')).toHaveText(
+      'Next: A wick for every window · Lv.5',
+    );
+    await expect(page.locator('.story-strip-progress')).toContainText('Try a daily bounty');
+    await page.screenshot({ path: `docs/qa/quest-gate-${name}.png` });
+    await page.keyboard.press('q');
+    const board = page.locator('.daily-board');
+    await board.scrollIntoViewIfNeeded();
+    await expect(
+      board.getByRole('button', { name: 'Accept daily bounty', exact: true }),
+    ).toBeEnabled();
+    await page.screenshot({ path: `docs/qa/daily-board-${name}.png` });
+    await board.getByRole('button', { name: 'Accept daily bounty', exact: true }).click();
+    expect((await snapshot(page)).daily.activeId).toBe('trail-patrol');
+  });
+}

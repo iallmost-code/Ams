@@ -4,7 +4,11 @@ export const PIP_HEAL_COOLDOWN = 35;
 export const POTION_PRICE = 90;
 export const POTION_COOLDOWN = 10;
 export const xpThreshold = (level) =>
-  Math.round((90 + 35 * level + 95 * level * level) * (1 + Math.max(0, level - 9) * 0.2));
+  Math.round(
+    (90 + 35 * level + 95 * level * level) *
+      (level >= 3 && level <= 9 ? 0.95 : 1) *
+      (1 + Math.max(0, level - 9) * 0.2),
+  );
 export const enemyXp = (enemy) => (enemy.isBoss ? 8000 : [32, 180, 480, 1000][enemy.areaRank ?? 0]);
 export const enemyGold = (enemy) => (enemy.isBoss ? 650 : 10 + enemy.level * 3);
 export const forgeCost = (stars) => ({

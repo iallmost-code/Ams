@@ -1,0 +1,98 @@
+{
+  "arcanist": {
+    "seconds": 3600,
+    "level": 12,
+    "gold": 26040,
+    "kills": 1981,
+    "deaths": 0,
+    "timeTo10": 1598,
+    "timeTo25": null,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 7,
+        "gold": 4590,
+        "deaths": 0
+      },
+      "900": {
+        "level": 8,
+        "gold": 6722,
+        "deaths": 0
+      },
+      "1800": {
+        "level": 10,
+        "gold": 13118,
+        "deaths": 0
+      },
+      "3600": {
+        "level": 12,
+        "gold": 26040,
+        "deaths": 0
+      }
+    }
+  },
+  "nightblade": {
+    "seconds": 3600,
+    "level": 12,
+    "gold": 25039,
+    "kills": 1903,
+    "deaths": 0,
+    "timeTo10": 1656,
+    "timeTo25": null,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 7,
+        "gold": 4434,
+        "deaths": 0
+      },
+      "900": {
+        "level": 8,
+        "gold": 6501,
+        "deaths": 0
+      },
+      "1800": {
+        "level": 10,
+        "gold": 12676,
+        "deaths": 0
+      },
+      "3600": {
+        "level": 12,
+        "gold": 25039,
+        "deaths": 0
+      }
+    }
+  },
+  "ranger": {
+    "seconds": 3600,
+    "level": 12,
+    "gold": 25923,
+    "kills": 1971,
+    "deaths": 0,
+    "timeTo10": 1613,
+    "timeTo25": null,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 7,
+        "gold": 4538,
+        "deaths": 0
+      },
+      "900": {
+        "level": 8,
+        "gold": 6644,
+        "deaths": 0
+      },
+      "1800": {
+        "level": 10,
+        "gold": 13014,
+        "deaths": 0
+      },
+      "3600": {
+        "level": 12,
+        "gold": 25923,
+        "deaths": 0
+      }
+    }
+  }
+}

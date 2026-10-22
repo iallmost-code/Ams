@@ -125,7 +125,7 @@ test('AUTO-quest uses an unlocked portal to reach the next giver and pauses befo
   const { STORY_QUESTS } = await import('../src/game/quests.js');
   const s = engine.createGame({
     player: { level: 10 },
-    story: { completed: STORY_QUESTS.slice(0, 3).map((q) => q.id) },
+    story: { completed: STORY_QUESTS.filter((q) => q.areaId === 'emerald_glade').map((q) => q.id) },
   });
   engine.toggleAutoQuest(s);
   for (let i = 0; i < 20 * 30 && s.story.activeId !== 'canopy-trail'; i++) tick(s, 1 / 30);
@@ -135,7 +135,7 @@ test('AUTO-quest uses an unlocked portal to reach the next giver and pauses befo
     player: { level: 20 },
     currentArea: 'ember_altar',
     story: {
-      completed: STORY_QUESTS.slice(0, 11).map((q) => q.id),
+      completed: STORY_QUESTS.slice(0, -1).map((q) => q.id),
       activeId: 'ember-guardian',
       progress: 0,
     },
@@ -167,7 +167,7 @@ test('journal validation rejects skipped chapters, corrupt values and excess obj
       activeId: 'ember-guardian',
       progress: Infinity,
     }),
-    { completed: [], activeId: null, progress: 0 },
+    { revision: 2, completed: [], activeId: null, progress: 0 },
   );
   assert.deepEqual(
     normalizeStoryProgress({
@@ -175,9 +175,14 @@ test('journal validation rejects skipped chapters, corrupt values and excess obj
       activeId: 'glade-spores',
       progress: 999,
     }),
-    { completed: ['glade-jellies'], activeId: 'glade-spores', progress: 5 },
+    { revision: 2, completed: ['glade-jellies'], activeId: 'glade-spores', progress: 5 },
   );
-  assert.deepEqual(normalizeStoryProgress(null), { completed: [], activeId: null, progress: 0 });
+  assert.deepEqual(normalizeStoryProgress(null), {
+    revision: 2,
+    completed: [],
+    activeId: null,
+    progress: 0,
+  });
 });
 test('every chapter matches only its own creatures and exploration platform', async () => {
   const { STORY_QUESTS, recordStoryEvent } = await import('../src/game/quests.js');
@@ -214,6 +219,7 @@ test('every chapter matches only its own creatures and exploration platform', as
           kind: 'defeat',
           enemy: {
             x: area.x + 400,
+            id: q.objective.enemyId || 'ordinary-creature',
             type: q.objective.enemyType || 'slime',
             isBoss: q.objective.kind === 'boss',
           },
@@ -266,8 +272,10 @@ test('offline expedition rewards do not fabricate quest kills or gathered items'
   const s = engine.createGame();
   npc(s);
   engine.acceptStoryQuest(s, 'glade-jellies');
+  engine.acceptDailyBounty(s);
   engine.toggleAutoQuest(s);
   markAbsence(s, 1000);
   assert.ok(settleAbsence(s, 61000));
   assert.equal(s.story.progress, 0);
+  assert.equal(s.daily.progress, 0);
 });

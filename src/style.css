@@ -3300,3 +3300,32 @@ button {
     flex-wrap: wrap;
   }
 }
+.portrait-tip[hidden] {
+  display: none !important;
+}
+.daily-board {
+  margin-top: 12px;
+}
+@media (orientation: portrait) {
+  .portrait-tip {
+    top: 151px;
+    bottom: auto;
+    left: 8px;
+    right: auto;
+    max-width: 180px;
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+  .story-strip b,
+  .story-strip small {
+    white-space: normal;
+    line-height: 1.3;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .story-strip b,
+  .story-strip small {
+    white-space: normal;
+    line-height: 1.3;
+  }
+}

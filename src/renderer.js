@@ -185,6 +185,9 @@ export class Renderer {
     for (const effect of state.effects || [])
       if (this.visible(effect.x, 250)) this.drawEffect(effect, true);
     if (this.particles) for (const particle of state.particles || []) this.drawParticle(particle);
+    // Name plates sit above terrain and sprites so ledges cannot hide the text.
+    for (const area of world.areas || [])
+      if (area.npc && this.visible(area.npc.x - 100, 240)) this.drawNPCLabel(area.npc);
     for (const number of state.numbers || []) this.drawNumber(number, state.damageSkin);
     c.restore();
     this.drawForeground();
@@ -492,6 +495,33 @@ export class Renderer {
       ellipse(c, 18 + Math.sin(i * 2) * 8, -115 + i * 23, 10, 5, p.leaf[2], i);
     c.restore();
   }
+  drawNamePill(text, x, y, color = '#fff1b9') {
+    const c = this.ctx;
+    c.save();
+    c.font = '900 14px Arial, sans-serif';
+    c.textAlign = 'center';
+    const width = c.measureText(text).width + 18;
+    // Labels remain readable when their owner is partly beyond the camera edge.
+    const transform = c.getTransform();
+    x = clamp(
+      x,
+      -transform.e / transform.a + width / 2 + 4,
+      (this.canvas.width - transform.e) / transform.a - width / 2 - 4,
+    );
+    c.fillStyle = '#15252fee';
+    c.strokeStyle = '#c4a96b';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.roundRect(x - width / 2, y - 16, width, 23, 7);
+    c.fill();
+    c.stroke();
+    c.lineWidth = 3;
+    c.strokeStyle = '#101a24';
+    c.strokeText(text, x, y);
+    c.fillStyle = color;
+    c.fillText(text, x, y);
+    c.restore();
+  }
   drawNPC(npc) {
     const c = this.ctx;
     c.save();
@@ -530,18 +560,22 @@ export class Renderer {
         3,
       );
     }
-    c.font = 'bold 10px Georgia';
+    c.restore();
+  }
+  drawNPCLabel(npc) {
+    const c = this.ctx;
+    c.save();
+    c.translate(npc.x, npc.y);
     c.textAlign = 'center';
-    c.fillStyle = '#fff0bd';
-    c.fillText(npc.name, 0, -91);
+    this.drawNamePill(npc.name, 0, -93, '#fff1b9');
     c.fillStyle = '#f4d986';
-    c.font = 'bold 17px Georgia';
+    c.font = 'bold 19px Georgia';
     c.fillText(
       getStoryView(this.state).quest?.giverId === npc.id
         ? { ready: '?', available: '!', locked: '◇' }[getStoryView(this.state).status] || '·'
         : '·',
       0,
-      -109 + Math.sin(this.t * 2) * 3,
+      -122 + Math.sin(this.t * 2) * 3,
     );
     c.restore();
   }
@@ -871,13 +905,7 @@ export class Renderer {
       }
       c.restore();
       c.save();
-      c.font = 'bold 11px Inter, sans-serif';
-      c.textAlign = 'center';
-      c.fillStyle = '#ffffff';
-      c.strokeStyle = '#624827';
-      c.lineWidth = 3;
-      c.strokeText('Aether', x, feet + 17);
-      c.fillText('Aether', x, feet + 17);
+      this.drawNamePill('Aether', x, feet + 16, '#ffffff');
       c.restore();
       return;
     }
@@ -1287,7 +1315,7 @@ export class Renderer {
       const col = hurt ? 3 : Math.floor(this.t * 5 + enemy.x * 0.01) % 3;
       const sw = image.width / 4,
         sh = image.height / 4,
-        size = Math.max(enemy.w + 16, enemy.h * 1.5);
+        size = Math.max(enemy.w + 16, enemy.h * 1.5) * (enemy.isElite ? 1.3 : 1);
       const x = enemy.x + enemy.w / 2,
         feet = enemy.y + enemy.h;
       ellipse(c, x, feet + 2, size * 0.32, 4, '#59432d30');
@@ -1300,6 +1328,11 @@ export class Renderer {
       const bob = this.motion && !hurt ? Math.sin(this.t * 5 + enemy.x) * 1.2 : 0;
       c.drawImage(creatureArt.frames[row * 4 + col], -size / 2, -size - bob, size, size);
       c.restore();
+      if (enemy.isElite) {
+        this.drawNamePill(enemy.name, x, feet - size - 21, '#ffe08c');
+        glow(c, x, feet - size / 2, 48, '#ffd85b22');
+        star(c, x, feet - size - 46, 9, '#ffe08c');
+      }
       if (enemy.hp > 0 && enemy.hp < enemy.maxHp) {
         c.fillStyle = '#5c382bdd';
         c.fillRect(x - 23, feet - size - 7, 46, 5);
@@ -1777,12 +1810,12 @@ export class Renderer {
       }[skin] || ['#fff3bc', '#845f3b'];
     const text = String(number.text ?? number.amount ?? '');
     c.save();
-    c.globalAlpha = clamp((number.life ?? 1) * 2, 0, 1);
+    c.globalAlpha = clamp((number.life ?? 1) * 4, 0, 1);
     c.textAlign = 'center';
     const numeric = /^\d/.test(text),
       gold = /g$/.test(text),
       healing = /HP|HEAL/.test(text);
-    const size = numeric ? 28 : text.length > 12 ? 17 : 23;
+    const size = numeric || gold ? 28 : text.length > 12 ? 17 : 23;
     c.font = `900 ${size}px Arial, sans-serif`;
     c.lineJoin = 'round';
     c.lineWidth = 6;
@@ -1790,10 +1823,10 @@ export class Renderer {
     const y = number.y - Math.max(0, 1 - (number.life ?? 1)) * 26;
     c.strokeText(text, number.x, y);
     const fill = c.createLinearGradient(0, y - size, 0, y);
-    fill.addColorStop(0, healing ? '#edfff0' : gold ? '#fffbd4' : numeric ? pal[0] : '#ffffff');
+    fill.addColorStop(0, healing ? '#edfff0' : gold ? '#ffec80' : numeric ? pal[0] : '#ffffff');
     fill.addColorStop(
       1,
-      healing ? '#52ff9b' : gold ? '#ffc228' : numeric ? '#ff9b35' : number.color || pal[0],
+      healing ? '#52ff9b' : gold ? '#ffc400' : numeric ? '#ff9b35' : number.color || pal[0],
     );
     c.fillStyle = fill;
     c.fillText(text, number.x, y);
