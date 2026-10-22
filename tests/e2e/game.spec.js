@@ -100,14 +100,17 @@ test('independent fingers can move and attack, and cancellation releases both du
   await page.setViewportSize({ width: 844, height: 390 });
   await launch(page);
   await page.waitForTimeout(200);
-  const right = await page.locator('[data-control="right"]').boundingBox();
+  const right = await page.locator('[data-joystick]').boundingBox();
   const attack = await page.locator('[data-control="attack"]').boundingBox();
   expect(right).toBeTruthy();
   expect(attack).toBeTruthy();
+  await expect(page.locator('[data-control="left"]')).toHaveCount(0);
+  await expect(page.locator('.pet-status')).toContainText('PIP');
+  expect((await snapshot(page)).pet.name).toBe('Pip');
   const before = (await snapshot(page)).player.x;
   const session = await context.newCDPSession(page);
   const touchPoints = [
-    { x: right.x + right.width / 2, y: right.y + right.height / 2, id: 1 },
+    { x: right.x + right.width * 0.85, y: right.y + right.height / 2, id: 1 },
     { x: attack.x + attack.width / 2, y: attack.y + attack.height / 2, id: 2 },
   ];
   await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints });
@@ -175,8 +178,12 @@ for (const [width, height] of [
     await page.setViewportSize({ width, height });
     await launch(page);
     await page.waitForTimeout(200);
-    for (const control of ['left', 'right', 'up', 'down', 'jump', 'attack']) {
-      const button = page.locator(`[data-control="${control}"]`);
+    for (const selector of [
+      '[data-joystick]',
+      '[data-control="jump"]',
+      '[data-control="attack"]',
+    ]) {
+      const button = page.locator(selector);
       await expect(button).toBeVisible();
       const box = await button.boundingBox();
       expect(box.x).toBeGreaterThanOrEqual(0);
@@ -202,6 +209,9 @@ test('storage denial does not prevent playing', async ({ page }) => {
   });
   await launch(page);
   await expect(page.locator('.save-indicator')).toContainText(/session only/i);
+  await expect(page.locator('[data-control="left"]')).toHaveCount(0);
+  await expect(page.locator('.pet-status')).toContainText('PIP');
+  expect((await snapshot(page)).pet.name).toBe('Pip');
   const before = (await snapshot(page)).player.x;
   await page.keyboard.down('d');
   await page.waitForTimeout(350);
@@ -224,6 +234,9 @@ test('installed production shell reloads and remains playable completely offline
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.aetherStory));
   await page.keyboard.press('Enter');
+  await expect(page.locator('[data-control="left"]')).toHaveCount(0);
+  await expect(page.locator('.pet-status')).toContainText('PIP');
+  expect((await snapshot(page)).pet.name).toBe('Pip');
   const before = (await snapshot(page)).player.x;
   await page.keyboard.down('d');
   await page.waitForTimeout(300);

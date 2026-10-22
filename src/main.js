@@ -215,6 +215,7 @@ window.aetherStory = Object.freeze({
       settings: state.settings,
       unlockedAreas: state.unlockedAreas,
       player: state.player,
+      pet: state.pet,
       enemies: state.enemies.map(({ id, type, x, y, hp, maxHp, platformId, respawnTimer }) => ({
         id,
         type,
@@ -356,7 +357,11 @@ window.addEventListener('appinstalled', () => {
   notify('AetherStory is installed. Your adventure is ready offline.');
 });
 
-if (import.meta.env.PROD && import.meta.env.VITE_SINGLE_FILE !== 'true' && 'serviceWorker' in navigator) {
+if (
+  import.meta.env.PROD &&
+  import.meta.env.VITE_SINGLE_FILE !== 'true' &&
+  'serviceWorker' in navigator
+) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
       console.warn('Offline installation is unavailable:', error.message);
