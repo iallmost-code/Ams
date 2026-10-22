@@ -1,3 +1,5 @@
+import { previewDismantle } from './game/engine.js';
+import { gearScore } from './game/auto.js';
 import { getDailyView } from './game/daily.js';
 import { getStoryView, STORY_QUESTS } from './game/quests.js';
 import { forgeCost, upgradeCost, POTION_PRICE } from './game/balance.js';
@@ -18,6 +20,7 @@ const PATHS = {
   leaf: 'M20 3C3 1 1 15 8 19c9 5 14-8 12-16ZM4 22 17 7',
   gear: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM10 2h4l1 4 4 1 3 3v4l-4 1-1 4-3 3h-4l-1-4-4-1-3-3v-4l4-1 1-4Z',
   coin: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4v12m4-9c-1-3-8-2-7 1s7 1 7 4-6 4-8 1',
+  lock: 'M6 10V7a6 6 0 0 1 12 0v3M4 10h16v12H4Zm8 5v3',
   helmet: 'M4 15v-4a8 8 0 0 1 16 0v4M3 15h18v6h-6l-3-5-3 5H3Zm9-12v9',
 };
 const icon = (name, extra = '') =>
@@ -47,7 +50,9 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     frame,
     dead = false,
     portraitTipShown = false,
-    portraitTipTimer;
+    portraitTipTimer,
+    dismantleQuote = null,
+    dismantleRarities = ['normal', 'rare'];
   root.innerHTML = `
     <div class="top-hud">
       <button class="identity glass" data-action="character" aria-label="Open character"><span class="portrait">${icon('sword')}</span><span class="identity-copy"><b>Aether</b><span class="class-name">Vanguard · Adventurer</span><span class="vital hp"><i></i><span data-testid="hp">100 / 100</span></span><span class="vital mp"><i></i><span>60 / 60</span></span></span><span class="level-badge" data-testid="level">1</span></button>
@@ -104,20 +109,26 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       node(
         'small',
         '',
-        `${title(item?.rarity || 'normal')} ${title(item?.type)}${item?.stars ? ` · ★${item.stars}` : ''}${item?.attack ? ` · +${item.attack} ATK` : ''}${item?.defense ? ` · +${item.defense} DEF` : ''}${item?.count > 1 ? ` · ×${item.count}` : ''}`,
+        `${title(item?.rarity || 'normal')} ${title(item?.type)}${item?.stars ? ` · ★${item.stars}` : ''}${slots.includes(item?.type) ? ` · +${Number(gearScore(item).toFixed(2))} ${item.type === 'weapon' ? 'ATK' : 'DEF'}` : ''}${item?.count > 1 ? ` · ×${item.count}` : ''}`,
       ),
     );
     row.append(glyph, copy);
     if (equipped) row.append(node('span', 'equipped-label', 'Equipped'));
     else if (item.type === 'potion')
       row.append(actionButton('potion', 'Use', undefined, 'small-button'));
-    else {
+    else if (slots.includes(item.type)) {
       const actions = node('div', 'item-actions');
-      actions.append(
-        actionButton('equip', 'Equip', item.id, 'small-button'),
-        actionButton('salvage', 'Salvage', item.id, 'text-button'),
-      );
+      const salvage = actionButton('salvage', 'Salvage', item.id, 'text-button');
+      salvage.disabled = Boolean(item.locked);
+      actions.append(actionButton('equip', 'Equip', item.id, 'small-button'), salvage);
       row.append(actions);
+    }
+    if (!equipped) {
+      const lock = actionButton('lock-item', '', item.id, 'item-lock');
+      lock.innerHTML = icon('lock');
+      lock.setAttribute('aria-label', `${item.locked ? 'Unlock' : 'Lock'} ${item.name}`);
+      lock.setAttribute('aria-pressed', String(Boolean(item.locked)));
+      row.append(lock);
     }
     return row;
   }
@@ -388,6 +399,49 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       }
       body.append(list);
     } else if (panel === 'inventory') {
+      if (dismantleQuote) {
+        body.classList.add('dismantle-body');
+        body.append(node('h2', '', 'Review dismantling'));
+        const filters = node('fieldset', 'rarity-filters');
+        filters.append(node('legend', '', 'Include rarities'));
+        for (const rarity of ['normal', 'rare', 'epic']) {
+          const label = node('label', ''),
+            input = node('input', '');
+          input.type = 'checkbox';
+          input.dataset.rarity = rarity;
+          input.checked = dismantleRarities.includes(rarity);
+          label.append(input, document.createTextNode(title(rarity)));
+          filters.append(label);
+        }
+        body.append(
+          filters,
+          node(
+            'p',
+            'dismantle-summary',
+            `Dismantle ${dismantleQuote.ids.length} items for ${dismantleQuote.gold} gold + ${dismantleQuote.cores} star cores?`,
+          ),
+          node('p', '', 'Equip Best runs first. Starred, locked and non-gear items stay safe.'),
+        );
+        const actions = node('div', 'bag-toolbar');
+        const confirm = actionButton('confirm-dismantle', 'Confirm', undefined, 'primary');
+        confirm.disabled = !dismantleQuote.ids.length;
+        actions.append(actionButton('cancel-dismantle', 'Cancel'), confirm);
+        body.append(actions);
+        return;
+      }
+      const tools = node('div', 'bag-toolbar');
+      tools.append(
+        actionButton('equip-best', 'Equip Best', undefined, 'primary'),
+        actionButton('dismantle-low', 'Dismantle Low Gear'),
+      );
+      body.append(
+        tools,
+        node(
+          'p',
+          'bag-stats',
+          `Attack ${p.attack} · Defense ${p.defense} · ${p.inventory.length} bag items`,
+        ),
+      );
       const equipment = node('div', 'equipment-grid');
       for (const slot of slots) {
         const item = p.equipment?.[slot],
@@ -402,9 +456,11 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         );
         equipment.append(cell);
       }
+      const worn = node('details', 'worn-gear');
+      worn.append(node('summary', '', 'Worn gear · 6 slots'), equipment);
       body.append(
         actionButton('shop', 'Visit supply shop', undefined, 'secondary'),
-        equipment,
+        worn,
         node('h2', 'section-title', 'IN THE SATCHEL'),
       );
       const list = node('div', 'item-list');
@@ -658,6 +714,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
   function showPanel(name, nextState) {
     if (nextState) state = nextState;
     panel = name;
+    dismantleQuote = null;
     panelKey = '';
     forgeRunning = false;
     forgeAttempted = false;
@@ -678,6 +735,30 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     if (!target || target.disabled) return;
     const action = target.dataset.action,
       payload = target._payload;
+    if (action === 'dismantle-low') {
+      dismantleRarities = ['normal', 'rare'];
+      const quote = previewDismantle(state, dismantleRarities);
+      if (!quote.ids.length) dispatch('nothing-dismantle');
+      else {
+        dismantleQuote = quote;
+        renderPanel();
+        modal.scrollTop = 0;
+        modal.focus();
+      }
+      return;
+    }
+    if (action === 'cancel-dismantle') {
+      dismantleQuote = null;
+      renderPanel();
+      return;
+    }
+    if (action === 'confirm-dismantle') {
+      const quote = dismantleQuote;
+      dismantleQuote = null;
+      dispatch('dismantle-low', quote);
+      renderPanel();
+      return;
+    }
     if (action === 'toggle-minimap') {
       onSettings({ ...state.settings, minimapCollapsed: !state.settings.minimapCollapsed });
       return;
@@ -707,6 +788,15 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     dispatch(action, payload);
   };
   const change = (event) => {
+    const rarity = event.target.dataset.rarity;
+    if (rarity) {
+      dismantleRarities = event.target.checked
+        ? [...dismantleRarities, rarity]
+        : dismantleRarities.filter((r) => r !== rarity);
+      dismantleQuote = previewDismantle(state, dismantleRarities);
+      renderPanel();
+      return;
+    }
     const key = event.target.dataset.setting;
     if (key) onSettings({ ...(state?.settings || {}), [key]: event.target.checked });
   };

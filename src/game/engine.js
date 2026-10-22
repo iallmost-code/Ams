@@ -374,8 +374,11 @@ export function equipBestGear(s) {
   for (const item of s.player.inventory)
     if (SLOTS.includes(item.type) && gearScore(item) > gearScore(best[item.type]))
       best[item.type] = item;
+  const upgraded = [];
   for (const slot of SLOTS)
-    if (best[slot] && best[slot] !== s.player.equipment[slot]) equipItem(s, best[slot].id);
+    if (best[slot] && best[slot] !== s.player.equipment[slot] && equipItem(s, best[slot].id))
+      upgraded.push(slot);
+  return upgraded;
 }
 function autoSurvivalInput(s) {
   const p = s.player;
@@ -662,12 +665,78 @@ export function forgeItem(s, slot, timing) {
   notice(s, message);
   return { success, message };
 }
+/** One reward formula for single salvage and batch quotes. */
+export function salvageRewards(item) {
+  return {
+    gold: 35 + (item.stars || 0) * 20,
+    cores: ['epic', 'unique', 'mythic'].includes(item.rarity) ? 2 : 1,
+  };
+}
+export function toggleItemLock(s, id) {
+  const item = s.player.inventory.find((i) => i.id === id);
+  if (!item) return false;
+  item.locked = !item.locked;
+  return true;
+}
+/** Run the real equip helper on isolated player containers. Preview/cancel never mutate play. */
+export function previewDismantle(s, rarities = ['normal', 'rare']) {
+  const draft = {
+    ...s,
+    player: {
+      ...s.player,
+      inventory: [...s.player.inventory],
+      equipment: { ...s.player.equipment },
+    },
+  };
+  equipBestGear(draft);
+  const items = draft.player.inventory.filter(
+    (i) =>
+      SLOTS.includes(i.type) &&
+      !i.locked &&
+      !(i.stars > 0) &&
+      rarities.includes(i.rarity || 'normal') &&
+      !Object.values(draft.player.equipment).some((e) => e?.id === i.id) &&
+      draft.player.equipment[i.type] &&
+      gearScore(i) <= gearScore(draft.player.equipment[i.type]),
+  );
+  return {
+    ids: items.map((i) => i.id),
+    rarities: [...rarities],
+    ...items.reduce(
+      (sum, i) => {
+        const r = salvageRewards(i);
+        return { gold: sum.gold + r.gold, cores: sum.cores + r.cores };
+      },
+      { gold: 0, cores: 0 },
+    ),
+  };
+}
+export function dismantleLowGear(s, quote) {
+  const current = previewDismantle(s, quote?.rarities || []);
+  if (!quote?.ids?.length || JSON.stringify(current) !== JSON.stringify(quote)) {
+    notice(s, 'Gear changed. Review dismantling again.');
+    return { count: 0, gold: 0, cores: 0 };
+  }
+  equipBestGear(s);
+  for (const id of current.ids) salvageItem(s, id);
+  notice(
+    s,
+    `Dismantled ${current.ids.length} items · +${current.gold} gold · +${current.cores} star cores`,
+  );
+  return { count: current.ids.length, gold: current.gold, cores: current.cores };
+}
 export function salvageItem(s, id) {
   const index = s.player.inventory.findIndex((i) => i.id === id);
-  if (index < 0 || !SLOTS.includes(s.player.inventory[index].type)) return false;
+  if (
+    index < 0 ||
+    !SLOTS.includes(s.player.inventory[index].type) ||
+    s.player.inventory[index].locked
+  )
+    return false;
   const [item] = s.player.inventory.splice(index, 1);
-  s.player.gold += 35 + (item.stars || 0) * 20;
-  s.starCores += ['epic', 'unique', 'mythic'].includes(item.rarity) ? 2 : 1;
+  const rewards = salvageRewards(item);
+  s.player.gold += rewards.gold;
+  s.starCores += rewards.cores;
   notice(s, `${item.name} salvaged`);
   return true;
 }

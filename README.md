@@ -41,6 +41,8 @@ Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓*
 
 **Rowan’s daily board** offers three shared bounties per local calendar day, accessible at any area’s guide. Hunts in all areas count, including story hunts. Accept and claim near a guide; the 25/50/100-kill goals award gold, cores, tonics and 2%/3%/5% of the current next-level XP requirement. The board resets at local midnight, and saved claims cannot be paid twice after reload. AUTO-quest reserves a short bounty for each longer story level gate; you can accept early from any guide.
 
+**Bag tools:** Equip Best uses the same starred main-stat comparison as AUTO and keeps swapped gear. Dismantle Low Gear previews Normal/Rare spares, with an optional Epic checkbox, and confirms the exact gold/core payout. Equipped, starred, locked and non-gear items are protected. Padlocks survive reload; locked gear cannot be salvaged individually. Cancel leaves equipment and rewards unchanged.
+
 **AUTO preparation:** AUTO and AUTO-quest equip strictly better gear from the bag, keeping displaced pieces. AUTO-quest stays in the current area if attack/defense do not meet the next area’s preparation thresholds; the tracker points to Bag / Forge / Shop. Low-health AUTO stops attacking and retreats to recover while healing is unavailable. Manual travel and equipment choices remain available.
 
 **Pip, your dragon companion**, automatically flies to gold, equipment and active quest items within 360 world units in both manual and AUTO play. When your HP falls below 70%, Pip restores 11% of your maximum HP, with a 35-second cooldown and no potion cost. Your HUD shows HP, pet activity and healing readiness; the companion cannot revive a defeated hero.
