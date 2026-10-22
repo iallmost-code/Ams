@@ -90,3 +90,35 @@ test('keyboard and touch holding same action are independent and clear fully res
   assert.equal(input.sample().left, false);
   input.destroy();
 });
+
+test('joystick supports analog diagonals, independent attack, cancellation and blur', () => {
+  const root = new Target(),
+    input = createInput(root);
+  const stick = {
+    dataset: { joystick: '' },
+    closest(selector) {
+      return selector === '[data-joystick]' ? this : null;
+    },
+    getBoundingClientRect() {
+      return { left: 0, top: 0, width: 120, height: 120 };
+    },
+    style: { setProperty() {} },
+    setPointerCapture() {},
+  };
+  root.fire('pointerdown', { pointerId: 1, target: stick, clientX: 100, clientY: 20 });
+  let sample = input.sample();
+  assert.ok(sample.right && sample.up && sample.moveX > 0 && sample.moveY < 0);
+  root.fire('pointerdown', { pointerId: 2, target: button('attack') });
+  root.fire('pointerup', { pointerId: 2 });
+  assert.equal(input.sample().right, true);
+  root.fire('pointermove', { pointerId: 1, clientX: 60, clientY: 60 });
+  assert.equal(input.sample().right, false);
+  root.fire('pointermove', { pointerId: 1, clientX: 500, clientY: 60 });
+  assert.equal(input.sample().moveX, 1);
+  root.fire('pointercancel', { pointerId: 1 });
+  assert.equal(input.sample().moveX, 0);
+  root.fire('pointerdown', { pointerId: 3, target: stick, clientX: 100, clientY: 60 });
+  root.defaultView.dispatchEvent(new Event('blur'));
+  assert.equal(input.sample().right, false);
+  input.destroy();
+});

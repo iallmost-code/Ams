@@ -2,6 +2,8 @@
 
 An original mobile-first Canvas action RPG built from the supplied platform/rope combat prototypes. Explore illustrated fantasy hunting grounds, fight manually or with AUTO, change class, collect equipment and save progress on your device. No backend, database or account is needed.
 
+![AetherStory mobile gameplay with original sprite artwork](docs/mobile-preview.png)
+
 ## Run locally
 
 Use Node.js 22.12+ (development environment: Node 24).
@@ -29,9 +31,11 @@ For a portable **single HTML file**, run `npm run build:html`. This produces `ar
 
 ## Play
 
-Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓**. Press **Space** to jump; **Down + Space** drops through a floating platform. Press **J** to attack or hold the attack button. Skills use **Z/K**, **X**, **C**, **V**. **E** interacts with Elder Rowan or nearby portals and collects nearby loot. Touch controls allow movement, climbing and attacks with separate fingers.
+Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓**. Press **Space** to jump; **Down + Space** drops through a floating platform. Press **J** to attack or hold the attack button. Skills use **Z/K**, **X**, **C**, **V**. **E** interacts with Elder Rowan or nearby portals and collects nearby loot. On mobile, drag the analog joystick to move or climb and use the other hand for jump, attacks and skills. The stick supports slower walking, diagonal climbing input, pointer cancellation and independent fingers.
 
 **T/B** toggles AUTO. Manual movement immediately takes priority. **I** opens inventory, **P** character, **M** world map, **G** forge, **U** skills, **O** settings and **Escape** pause/close. **Enter** begins the adventure.
+
+**Pip, your dragon companion**, automatically flies to gold and equipment within 360 world units in both manual and AUTO play. When your HP falls below 70%, Pip restores 28% of your maximum HP, with a 12-second cooldown and no potion cost. Your HUD shows HP, pet activity and healing readiness; the companion cannot revive a defeated hero.
 
 The four classes are Vanguard, Arcanist, Nightblade and Ranger. First and second skills are available immediately; advanced skills unlock at levels 10 and 25. Hunt monsters for XP, collect gold and equipment, equip six gear slots, spend skill points and enhance equipment in the timing-based forge. Defeated monsters respawn; a fallen hero returns safely after a short delay. Later hunting grounds unlock at levels 3, 6 and 10.
 
@@ -66,4 +70,4 @@ Behavior tests cover physics, combat, deaths/respawn, navigation, local saves, t
 
 The browser exposes read-only diagnostics through `window.aetherStory.getSnapshot()` and `window.aetherStory.getDiagnostics()` for bug reports. No debug mutation or backend is required.
 
-All visuals and sound synthesis are original to this project. Commercial-game location/boss names and remote libraries from the larger reference snippet are replaced. The larger supplied snippet ended during its combat implementation; this repository contains a new modular implementation rather than claiming to repair code that was not supplied.
+The illustrated mushroom valley and four-class/creature animation atlases are original AI-generated artwork created for this project and bundled locally as WebP assets. Terrain, effects and the dragon companion use local Canvas artwork; sound is synthesized locally. Commercial-game location/boss names and remote libraries from the larger reference snippet are replaced. The larger supplied snippet ended during its combat implementation; this repository contains a new modular implementation rather than claiming to repair code that was not supplied.

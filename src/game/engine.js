@@ -257,6 +257,15 @@ export function createGame(progress = null) {
     world,
     areas: world.areas,
     player,
+    pet: {
+      name: 'Pip',
+      x: 120,
+      y: 760,
+      healCooldown: 0,
+      healFlash: 0,
+      targetId: null,
+      mode: 'following',
+    },
     enemies: createEnemies(world),
     drops: [],
     particles: [],
@@ -791,10 +800,13 @@ function physics(s, input, jump, dt) {
       return;
     }
   }
-  const direction = Number(!!input.right) - Number(!!input.left);
+  const direction =
+    Number.isFinite(input.moveX) && Math.abs(input.moveX) > 0.16
+      ? clamp(input.moveX, -1, 1)
+      : Number(!!input.right) - Number(!!input.left);
   p.vx = direction * MOVE_SPEED + (p.knockbackTimer > 0 ? p.knockbackVx : 0);
   p.knockbackTimer = Math.max(0, p.knockbackTimer - dt);
-  if (direction) p.facing = direction;
+  if (direction) p.facing = Math.sign(direction);
   if (jump && p.grounded) {
     const surface = s.world.platforms.find((t) => t.id === p.platformId);
     const ground = s.world.platforms.find((t) => t.ground || t.id === 'ground');
@@ -981,6 +993,41 @@ function autoInput(s, dt) {
   }
   return finishAutoInput(s, input, dt);
 }
+/** Pip works in both manual and AUTO modes. Flight never changes player physics. */
+function tickPet(s, dt) {
+  const p = s.player,
+    pet = s.pet;
+  pet.healCooldown = Math.max(0, pet.healCooldown - dt);
+  pet.healFlash = Math.max(0, pet.healFlash - dt);
+  const ownerX = center(p),
+    ownerY = p.y + p.h / 2;
+  if (Math.hypot(pet.x - ownerX, pet.y - ownerY) > 650) {
+    pet.x = ownerX - 60;
+    pet.y = ownerY - 20;
+  }
+  const nearby = s.drops.filter((d) => Math.hypot(d.x - ownerX, d.y - ownerY) < 360);
+  let target = nearby.find((d) => d.id === pet.targetId);
+  if (!target)
+    target = nearby.sort(
+      (a, b) => Math.hypot(a.x - pet.x, a.y - pet.y) - Math.hypot(b.x - pet.x, b.y - pet.y),
+    )[0];
+  pet.targetId = target?.id || null;
+  pet.mode = target ? 'looting' : 'following';
+  const tx = target ? target.x : ownerX - p.facing * 62;
+  const ty = target ? target.y : ownerY - 24;
+  const distance = Math.hypot(tx - pet.x, ty - pet.y);
+  const fraction = Math.min(1, (340 * dt) / Math.max(1, distance));
+  pet.x += (tx - pet.x) * fraction;
+  pet.y += (ty - pet.y) * fraction;
+  if (p.hp > 0 && p.hp < p.maxHp * 0.7 && pet.healCooldown === 0) {
+    const amount = Math.min(p.maxHp - p.hp, Math.ceil(p.maxHp * 0.28));
+    p.hp += amount;
+    pet.healCooldown = 12;
+    pet.healFlash = 1.2;
+    floating(s, ownerX, p.y - 12, `+${amount} HP`, '#8effc4');
+    notice(s, `Pip restored ${amount} HP`);
+  }
+}
 function collect(s, input, dt) {
   const p = s.player;
   for (let i = s.drops.length - 1; i >= 0; i--) {
@@ -991,9 +1038,10 @@ function collect(s, input, dt) {
       continue;
     }
     if (
-      (input.interact || s.auto) &&
-      Math.abs(d.x - center(p)) < (input.interact ? 110 : 48) &&
-      Math.abs(d.y - (p.y + p.h / 2)) < 90
+      (s.pet.targetId === d.id && Math.hypot(d.x - s.pet.x, d.y - s.pet.y) < 24) ||
+      ((input.interact || s.auto) &&
+        Math.abs(d.x - center(p)) < (input.interact ? 110 : 48) &&
+        Math.abs(d.y - (p.y + p.h / 2)) < 90)
     ) {
       if (d.type === 'gold') {
         p.gold += d.amount;
@@ -1059,6 +1107,7 @@ function frame(s, raw, dt) {
   if (raw.interact && !s.previousInput.interact) interactWorld(s);
   combat(s, input);
   tickEnemies(s, dt);
+  tickPet(s, dt);
   collect(s, input, dt);
   s.previousInput = { ...raw };
 }

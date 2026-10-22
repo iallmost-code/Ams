@@ -11,6 +11,9 @@ async function seedProgress(page, data) {
 async function launch(page) {
   await page.goto('/');
   await page.waitForFunction(() => Boolean(window.aetherStory));
+  await page.waitForFunction(() =>
+    Object.values(window.aetherStory.getDiagnostics().art).every(Boolean),
+  );
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await snapshot(page)).started).toBe(true);
 }
@@ -27,6 +30,11 @@ test('starts a real canvas game with movement, jump, pause and no runtime except
   });
   await launch(page);
   await expect(page.locator('#game-canvas')).toBeVisible();
+  expect(await page.evaluate(() => window.aetherStory.getDiagnostics().art)).toEqual({
+    background: true,
+    heroes: true,
+    creatures: true,
+  });
   await page.waitForTimeout(350);
   const before = await snapshot(page);
   await page.keyboard.down('d');
@@ -86,6 +94,9 @@ test('equipment, class and settings persist after a real page reload', async ({ 
   await particles.uncheck();
   await page.reload();
   await page.waitForFunction(() => Boolean(window.aetherStory));
+  await page.waitForFunction(() =>
+    Object.values(window.aetherStory.getDiagnostics().art).every(Boolean),
+  );
   const restored = await snapshot(page);
   expect(restored.classId).toBe('arcanist');
   expect(restored.player.equipment.weapon?.id).not.toBe(original);
@@ -100,14 +111,17 @@ test('independent fingers can move and attack, and cancellation releases both du
   await page.setViewportSize({ width: 844, height: 390 });
   await launch(page);
   await page.waitForTimeout(200);
-  const right = await page.locator('[data-control="right"]').boundingBox();
+  const right = await page.locator('[data-joystick]').boundingBox();
   const attack = await page.locator('[data-control="attack"]').boundingBox();
   expect(right).toBeTruthy();
   expect(attack).toBeTruthy();
+  await expect(page.locator('[data-control="left"]')).toHaveCount(0);
+  await expect(page.locator('.pet-status')).toContainText('PIP');
+  expect((await snapshot(page)).pet.name).toBe('Pip');
   const before = (await snapshot(page)).player.x;
   const session = await context.newCDPSession(page);
   const touchPoints = [
-    { x: right.x + right.width / 2, y: right.y + right.height / 2, id: 1 },
+    { x: right.x + right.width * 0.85, y: right.y + right.height / 2, id: 1 },
     { x: attack.x + attack.width / 2, y: attack.y + attack.height / 2, id: 2 },
   ];
   await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints });
@@ -158,6 +172,9 @@ test('forge timing enhances real equipment and a damage signature survives reloa
   await expect.poll(async () => (await snapshot(page)).damageSkin).toBe('frost');
   await page.reload();
   await page.waitForFunction(() => Boolean(window.aetherStory));
+  await page.waitForFunction(() =>
+    Object.values(window.aetherStory.getDiagnostics().art).every(Boolean),
+  );
   expect((await snapshot(page)).damageSkin).toBe('frost');
   expect((await snapshot(page)).player.equipment.weapon.stars).toBe(1);
 });
@@ -175,8 +192,12 @@ for (const [width, height] of [
     await page.setViewportSize({ width, height });
     await launch(page);
     await page.waitForTimeout(200);
-    for (const control of ['left', 'right', 'up', 'down', 'jump', 'attack']) {
-      const button = page.locator(`[data-control="${control}"]`);
+    for (const selector of [
+      '[data-joystick]',
+      '[data-control="jump"]',
+      '[data-control="attack"]',
+    ]) {
+      const button = page.locator(selector);
       await expect(button).toBeVisible();
       const box = await button.boundingBox();
       expect(box.x).toBeGreaterThanOrEqual(0);
@@ -202,6 +223,9 @@ test('storage denial does not prevent playing', async ({ page }) => {
   });
   await launch(page);
   await expect(page.locator('.save-indicator')).toContainText(/session only/i);
+  await expect(page.locator('[data-control="left"]')).toHaveCount(0);
+  await expect(page.locator('.pet-status')).toContainText('PIP');
+  expect((await snapshot(page)).pet.name).toBe('Pip');
   const before = (await snapshot(page)).player.x;
   await page.keyboard.down('d');
   await page.waitForTimeout(350);
@@ -223,7 +247,13 @@ test('installed production shell reloads and remains playable completely offline
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.aetherStory));
+  await page.waitForFunction(() =>
+    Object.values(window.aetherStory.getDiagnostics().art).every(Boolean),
+  );
   await page.keyboard.press('Enter');
+  await expect(page.locator('[data-control="left"]')).toHaveCount(0);
+  await expect(page.locator('.pet-status')).toContainText('PIP');
+  expect((await snapshot(page)).pet.name).toBe('Pip');
   const before = (await snapshot(page)).player.x;
   await page.keyboard.down('d');
   await page.waitForTimeout(300);
@@ -232,6 +262,9 @@ test('installed production shell reloads and remains playable completely offline
   expect(await page.evaluate(() => navigator.onLine)).toBe(false);
   await page.goto('/map/deep/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.aetherStory));
+  await page.waitForFunction(() =>
+    Object.values(window.aetherStory.getDiagnostics().art).every(Boolean),
+  );
   await expect(page).toHaveURL('http://127.0.0.1:4173/');
   expect(errors).toEqual([]);
   await context.setOffline(false);
@@ -250,6 +283,9 @@ test('eligible offline expedition displays its summary and pays only once after 
   await page.getByRole('button', { name: 'Continue adventure' }).click();
   await page.reload();
   await page.waitForFunction(() => Boolean(window.aetherStory));
+  await page.waitForFunction(() =>
+    Object.values(window.aetherStory.getDiagnostics().art).every(Boolean),
+  );
   await page.keyboard.press('Enter');
   expect((await snapshot(page)).player.gold).toBe(returned.player.gold);
   await expect(page.getByRole('heading', { name: 'Welcome back, adventurer' })).toHaveCount(0);

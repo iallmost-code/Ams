@@ -1,4 +1,5 @@
 import './style.css';
+import { artReady, artStatus } from './art.js';
 import {
   createGame,
   updateGame,
@@ -215,6 +216,7 @@ window.aetherStory = Object.freeze({
       settings: state.settings,
       unlockedAreas: state.unlockedAreas,
       player: state.player,
+      pet: state.pet,
       enemies: state.enemies.map(({ id, type, x, y, hp, maxHp, platformId, respawnTimer }) => ({
         id,
         type,
@@ -233,6 +235,7 @@ window.aetherStory = Object.freeze({
   getDiagnostics() {
     return {
       version: '1.0.0',
+      art: artStatus(),
       fps,
       saveAvailable,
       lastSaveTime,
@@ -356,7 +359,11 @@ window.addEventListener('appinstalled', () => {
   notify('AetherStory is installed. Your adventure is ready offline.');
 });
 
-if (import.meta.env.PROD && import.meta.env.VITE_SINGLE_FILE !== 'true' && 'serviceWorker' in navigator) {
+if (
+  import.meta.env.PROD &&
+  import.meta.env.VITE_SINGLE_FILE !== 'true' &&
+  'serviceWorker' in navigator
+) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
       console.warn('Offline installation is unavailable:', error.message);
@@ -373,7 +380,7 @@ if (import.meta.hot)
   });
 
 // System fonts are local, but wait for font readiness before measuring/drawing text.
-Promise.resolve(document.fonts?.ready)
+Promise.all([document.fonts?.ready, artReady])
   .catch(() => {})
   .then(() => {
     lastFrame = performance.now();

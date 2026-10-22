@@ -447,57 +447,6 @@ button {
   align-items: center;
   gap: 8px;
 }
-.dpad {
-  display: grid;
-  grid-template: repeat(3, 43px) / repeat(3, 43px);
-  gap: 2px;
-  position: relative;
-}
-.dpad button {
-  display: grid;
-  place-items: center;
-  width: 43px;
-  height: 43px;
-  border: 1px solid #b7e0c64a;
-  background: linear-gradient(140deg, #52765cbb, #1d5147b0);
-  border-radius: 12px;
-  color: #e2e9c6;
-  box-shadow:
-    0 4px 0 #102e2c55,
-    inset 0 1px 0 #ffffff16;
-  touch-action: none;
-}
-.dpad .up {
-  grid-area: 1/2;
-}
-.dpad .left {
-  grid-area: 2/1;
-}
-.dpad .right {
-  grid-area: 2/3;
-}
-.dpad .down {
-  grid-area: 3/2;
-}
-.dpad .up svg {
-  transform: rotate(-90deg);
-}
-.dpad .left svg {
-  transform: rotate(180deg);
-}
-.dpad .down svg {
-  transform: rotate(90deg);
-}
-.dpad-center {
-  grid-area: 2/2;
-  align-self: center;
-  justify-self: center;
-  width: 19px;
-  height: 19px;
-  background: #bdd8b525;
-  border: 1px solid #c3dbab25;
-  border-radius: 50%;
-}
 .key-hint {
   font-size: 7px;
   letter-spacing: 1.5px;
@@ -1829,23 +1778,6 @@ button {
     right: max(17px, env(safe-area-inset-right));
     height: 130px;
   }
-  .dpad {
-    grid-template: repeat(3, 34px) / repeat(3, 34px);
-    gap: 1px;
-  }
-  .dpad button {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-  }
-  .dpad svg {
-    width: 19px;
-    height: 19px;
-  }
-  .dpad-center {
-    width: 15px;
-    height: 15px;
-  }
   .movement {
     gap: 5px;
   }
@@ -2296,23 +2228,6 @@ button {
     bottom: max(33px, calc(env(safe-area-inset-bottom) + 17px));
     height: 196px;
   }
-  .dpad {
-    grid-template: repeat(3, 33px) / repeat(3, 33px);
-    gap: 1px;
-  }
-  .dpad button {
-    width: 33px;
-    height: 33px;
-    border-radius: 9px;
-  }
-  .dpad svg {
-    width: 18px;
-    height: 18px;
-  }
-  .dpad-center {
-    width: 14px;
-    height: 14px;
-  }
   .movement {
     gap: 6px;
   }
@@ -2630,10 +2545,6 @@ button {
     transform: scale(0.9);
     transform-origin: bottom right;
   }
-  .dpad {
-    transform: scale(0.9);
-    transform-origin: bottom left;
-  }
   .movement {
     width: 90px;
   }
@@ -2672,4 +2583,273 @@ button {
 }
 .save-indicator[data-status='unavailable'] i {
   background: #e6b674;
+}
+
+/* A captured analog stick leaves the other hand free for combat. */
+.joystick {
+  width: 140px;
+  height: 140px;
+  position: relative;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+  --stick-x: 0px;
+  --stick-y: 0px;
+}
+.joystick-ring {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 2px solid #c3eeea70;
+  background: radial-gradient(circle, #348f9550 0%, #123c5270 65%, #09293b99 100%);
+  box-shadow:
+    inset 0 0 0 10px #9be8ed0c,
+    0 5px 18px #062f4540;
+}
+.joystick-ring:after {
+  content: '';
+  position: absolute;
+  inset: 24px;
+  border: 1px dashed #cbf5ef50;
+  border-radius: 50%;
+}
+.joystick-thumb {
+  position: absolute;
+  left: calc(50% - 24px);
+  top: calc(50% - 24px);
+  width: 48px;
+  height: 48px;
+  transform: translate(var(--stick-x), var(--stick-y));
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, #e7ffff, #81d7dc 40%, #378da5 80%);
+  border: 2px solid #e1fff6;
+  box-shadow:
+    0 5px 12px #082e5270,
+    inset 0 0 0 5px #ffffff18;
+  pointer-events: none;
+}
+.joystick-label {
+  position: absolute;
+  bottom: -4px;
+  width: 100%;
+  text-align: center;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #e2fff3;
+  pointer-events: none;
+}
+.pet-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid #8ce5ed60;
+  border-radius: 12px;
+  background: #103a4ad9;
+  color: #bdffff;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.pet-status b {
+  color: #ffe6a8;
+  font-size: 10px;
+}
+.pet-status.healing {
+  background: #236745e8;
+  border-color: #b2ffd4;
+  color: #e2ffed;
+}
+.identity.low-hp {
+  box-shadow: 0 0 18px #ff5566a0;
+  border-color: #ff948d;
+}
+.vital.hp {
+  min-height: 12px;
+}
+@media (max-width: 1000px) {
+  .joystick {
+    width: 122px;
+    height: 122px;
+  }
+  .movement .key-hint {
+    display: none;
+  }
+  .pet-status {
+    font-size: 8px;
+    padding: 4px 7px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .field-info .quest {
+    display: none;
+  }
+  .field-info {
+    top: 80px;
+  }
+  .minimap {
+    opacity: 0.85;
+  }
+  .joystick {
+    width: 112px;
+    height: 112px;
+  }
+  .joystick-thumb {
+    width: 44px;
+    height: 44px;
+    left: calc(50% - 22px);
+    top: calc(50% - 22px);
+  }
+  .bottom-center {
+    gap: 4px;
+  }
+  .pet-status {
+    padding: 3px 6px;
+    font-size: 8px;
+  }
+}
+
+/* Bright parchment and jewel tones match the new illustrated sprite world. */
+.identity.glass {
+  color: #56361f;
+  background: linear-gradient(#fff7dcf5, #f0d6a9f0);
+  border: 2px solid #a47742;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 0 #65472755,
+    0 3px 12px #57382430;
+}
+.identity .class-name {
+  color: #89603b;
+}
+.identity .portrait {
+  background-image: url('./assets/adventurers.webp');
+  background-size: 400% 400%;
+  background-position: 0 var(--portrait-row, 0%);
+  background-color: #f3e6bc;
+  border-color: #c29454;
+  box-shadow: inset 0 0 8px #9c763955;
+}
+.identity .portrait svg {
+  visibility: hidden;
+}
+.identity .vital {
+  border: 1px solid #a77b5a;
+  height: 12px;
+  background: #614a40;
+}
+.identity .vital span {
+  font-size: 8px;
+  line-height: 10px;
+}
+.identity .vital.hp i {
+  background: linear-gradient(#ff9f89, #ed534b 50%, #cf3a41);
+}
+.identity .vital.mp i {
+  background: linear-gradient(#92e3ff, #429fe0 50%, #3571c6);
+}
+.quick-nav button {
+  background: linear-gradient(#fff4d9eb, #e8c78fe8);
+  border: 1px solid #9d7345;
+  color: #694324;
+  box-shadow:
+    inset 0 1px 0 white,
+    0 2px 0 #75503555;
+}
+.quick-nav button small {
+  color: #6a4728;
+}
+.journey .brand {
+  color: #fff5d3;
+  text-shadow:
+    0 2px 0 #855638,
+    1px 0 #855638,
+    -1px 0 #855638,
+    0 3px 8px #53362280;
+}
+.minimap.glass {
+  background: #fff1cdde;
+  border: 2px solid #ad7d44;
+  color: #704f2e;
+}
+.minimap .map-caption {
+  color: #704f2e;
+}
+.auto-button {
+  background: linear-gradient(#fff3c9, #e6bc73);
+  color: #764619;
+  border-color: #a66c32;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 0 #6b492c55;
+}
+.auto-button.active {
+  background: linear-gradient(#ffe989, #f8b946);
+  color: #6d370c;
+  border-color: #a66c32;
+}
+.auto-button small {
+  color: inherit;
+}
+.attack-button {
+  background: radial-gradient(circle at 35% 25%, #fff5b1, #ffb23e 48%, #d77326);
+  border: 3px solid #fff4d0;
+  box-shadow:
+    0 0 0 2px #a66c32,
+    0 5px 12px #6c431c55,
+    inset 0 2px 3px #fff9c9;
+}
+.skill {
+  background: radial-gradient(circle at 35% 25%, #a4efff, #439de1 50%, #4653a8);
+  border-color: #f9e8b6;
+  color: #fff;
+  box-shadow:
+    0 0 0 1px #8e6d48,
+    0 4px 8px #1e458855,
+    inset 0 2px 0 #ffffff80;
+}
+.skill-1 {
+  background: radial-gradient(circle at 35% 25%, #eff4ff, #8b9eef 45%, #7850a4);
+}
+.skill-2 {
+  background: radial-gradient(circle at 35% 25%, #f8dbff, #c77be5 45%, #6e429a);
+}
+.skill-3 {
+  background: radial-gradient(circle at 35% 25%, #ffffcc, #efae4b 45%, #c46442);
+}
+.pet-status {
+  background: #fff4dce8;
+  color: #74502f;
+  border-color: #b99461;
+  box-shadow: 0 2px 0 #75503530;
+}
+.pet-status b {
+  color: #54809e;
+}
+.joystick-ring {
+  background: radial-gradient(circle, #f1d49366, #b4a07155 60%, #756e5560);
+  border-color: #ffe6afb0;
+  box-shadow:
+    inset 0 0 0 8px #fff6ce1c,
+    0 4px 12px #70543740;
+}
+.joystick-thumb {
+  background: radial-gradient(circle at 35% 25%, #fffbdd, #efcf82 45%, #bd8f48 85%);
+  border-color: #fffae1;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .journey .brand {
+    font-size: 20px;
+  }
+  .journey > span {
+    display: none;
+  }
+  .notice {
+    top: 30%;
+  }
+  .identity .vital span {
+    font-size: 7px;
+    line-height: 10px;
+  }
 }
