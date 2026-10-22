@@ -38,6 +38,25 @@ export function createInput(root = document) {
     pointers = new Map(),
     pulses = new Set(),
     listeners = [];
+  let joystick = null;
+  const resetJoystick = () => {
+    joystick?.element.style.setProperty('--stick-x', '0px');
+    joystick?.element.style.setProperty('--stick-y', '0px');
+    joystick = null;
+  };
+  const moveJoystick = (event) => {
+    if (!joystick || joystick.id !== event.pointerId) return;
+    const rect = joystick.element.getBoundingClientRect();
+    const radius = rect.width * 0.32;
+    const dx = event.clientX - rect.left - rect.width / 2;
+    const dy = event.clientY - rect.top - rect.height / 2;
+    const length = Math.hypot(dx, dy);
+    const factor = length > radius ? radius / length : 1;
+    joystick.x = length < radius * 0.16 ? 0 : (dx * factor) / radius;
+    joystick.y = length < radius * 0.16 ? 0 : (dy * factor) / radius;
+    joystick.element.style.setProperty('--stick-x', `${dx * factor}px`);
+    joystick.element.style.setProperty('--stick-y', `${dy * factor}px`);
+  };
   const listen = (target, type, fn) => {
     target?.addEventListener(type, fn, { passive: false });
     listeners.push(() => target?.removeEventListener(type, fn));
@@ -66,6 +85,17 @@ export function createInput(root = document) {
     }
   });
   listen(root, 'pointerdown', (event) => {
+    const stick = event.target?.closest?.('[data-joystick]');
+    if (stick && Object.hasOwn(stick.dataset, 'joystick')) {
+      if (joystick) return;
+      event.preventDefault();
+      joystick = { id: event.pointerId, element: stick, x: 0, y: 0 };
+      try {
+        stick.setPointerCapture(event.pointerId);
+      } catch {}
+      moveJoystick(event);
+      return;
+    }
     const button = event.target?.closest?.('[data-control]'),
       action = button?.dataset.control;
     if (!ACTIONS.includes(action) || button.disabled) return;
@@ -79,7 +109,9 @@ export function createInput(root = document) {
       /* Detached touch targets cannot capture. */
     }
   });
+  listen(root, 'pointermove', moveJoystick);
   const release = (event) => {
+    if (joystick?.id === event.pointerId) resetJoystick();
     const held = pointers.get(event.pointerId);
     if (!held) return;
     pointers.delete(event.pointerId);
@@ -89,6 +121,7 @@ export function createInput(root = document) {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
     listen(root, type, release);
   const clear = () => {
+    resetJoystick();
     keys.clear();
     for (const { button } of pointers.values()) button.classList?.remove('pressed');
     pointers.clear();
@@ -103,6 +136,12 @@ export function createInput(root = document) {
       const result = Object.fromEntries(
         ACTIONS.map((action) => [action, PULSES.has(action) ? pulses.has(action) : active(action)]),
       );
+      result.moveX = joystick?.x || 0;
+      result.moveY = joystick?.y || 0;
+      result.left ||= result.moveX < -0.16;
+      result.right ||= result.moveX > 0.16;
+      result.up ||= result.moveY < -0.35;
+      result.down ||= result.moveY > 0.35;
       pulses.clear();
       return result;
     },

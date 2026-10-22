@@ -52,7 +52,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     <aside class="field-info"><button class="minimap glass" data-action="map" aria-label="Open world map"><canvas width="190" height="70" aria-hidden="true"></canvas><span class="map-caption">EMERALD GLADE ${icon('map')}</span></button><div class="quest glass"><div class="eyebrow">STORY QUEST <span>01</span></div><b>A little courage</b><p>Help Elder Rowan clear the woodland.</p><div><span class="quest-progress">Defeat creatures · 0 / 6</span><button data-action="claim" class="claim" disabled>Claim ${icon('arrow')}</button></div><div class="quest-line"><i></i></div></div></aside>
     <div class="notice" role="status" aria-live="polite"></div>
     <div class="portrait-tip">${icon('map')} More room to explore in landscape</div>
-    <div class="bottom-hud"><div class="movement"><div class="dpad" aria-label="Movement controls"><button data-control="up" class="up" aria-label="Climb up">${icon('arrow')}</button><button data-control="left" class="left" aria-label="Move left">${icon('arrow')}</button><span class="dpad-center"></span><button data-control="right" class="right" aria-label="Move right">${icon('arrow')}</button><button data-control="down" class="down" aria-label="Climb down">${icon('arrow')}</button></div><span class="key-hint">W A S D · MOVE</span></div><div class="bottom-center"><button class="auto-button" data-action="auto" aria-pressed="false"><span class="auto-dot"></span>AUTO <small>OFF</small></button><div class="utility-controls"><button data-control="interact" aria-label="Collect or interact">${icon('leaf')}<span>Collect <kbd>E</kbd></span></button><button data-action="potion" aria-label="Use health potion">${icon('potion')}<span class="potion-count">3</span></button></div><div class="save-indicator" data-status="pending" role="status" aria-live="polite"><i></i><span>SAVE PENDING</span></div></div><div class="combat-controls"><div class="skill-wheel">${[0, 1, 2, 3].map((i) => `<button class="skill skill-${i}" data-control="${i ? `skill${i + 1}` : 'skill'}" aria-label="Skill ${i + 1}"><span class="skill-glyph">${icon(['sword', 'spark', 'star', 'leaf'][i])}</span><span class="skill-cooldown"></span><span class="skill-key">${['Z', 'X', 'C', 'V'][i]}</span><span class="skill-level"></span></button>`).join('')}</div><button class="jump-button" data-control="jump" aria-label="Jump">${icon('jump')}<small>JUMP</small></button><button class="attack-button" data-control="attack" aria-label="Attack">${icon('sword')}<span>ATTACK</span><kbd>J</kbd></button></div></div>
+    <div class="bottom-hud"><div class="movement"><div class="joystick" data-joystick role="group" aria-label="Movement joystick"><div class="joystick-ring"></div><span class="joystick-thumb"></span><span class="joystick-label">MOVE · CLIMB</span></div><span class="key-hint">W A S D · MOVE</span></div><div class="bottom-center"><button class="auto-button" data-action="auto" aria-pressed="false"><span class="auto-dot"></span>AUTO <small>OFF</small></button><div class="pet-status" aria-live="off"><b>✦ PIP</b><span>Auto loot · Heal ready</span></div><div class="utility-controls"><button data-control="interact" aria-label="Collect or interact">${icon('leaf')}<span>Collect <kbd>E</kbd></span></button><button data-action="potion" aria-label="Use health potion">${icon('potion')}<span class="potion-count">3</span></button></div><div class="save-indicator" data-status="pending" role="status" aria-live="polite"><i></i><span>SAVE PENDING</span></div></div><div class="combat-controls"><div class="skill-wheel">${[0, 1, 2, 3].map((i) => `<button class="skill skill-${i}" data-control="${i ? `skill${i + 1}` : 'skill'}" aria-label="Skill ${i + 1}"><span class="skill-glyph">${icon(['sword', 'spark', 'star', 'leaf'][i])}</span><span class="skill-cooldown"></span><span class="skill-key">${['Z', 'X', 'C', 'V'][i]}</span><span class="skill-level"></span></button>`).join('')}</div><button class="jump-button" data-control="jump" aria-label="Jump">${icon('jump')}<small>JUMP</small></button><button class="attack-button" data-control="attack" aria-label="Attack">${icon('sword')}<span>ATTACK</span><kbd>J</kbd></button></div></div>
     <div class="experience"><i></i><span>LEVEL 1 · 0 / 100 XP</span></div>
     <div class="modal-layer"><section class="modal" role="dialog" aria-modal="true" aria-label="Adventure menu" tabindex="-1"></section></div>`;
   const $ = (selector) => root.querySelector(selector),
@@ -556,7 +556,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     ]) {
       $(`.${type} i`).style.width =
         `${Math.max(0, Math.min(100, (n(value) / Math.max(1, n(max))) * 100))}%`;
-      setText(`.${type} span`, `${amount(value)} / ${amount(max)}`);
+      setText(`.${type} span`, `${type.toUpperCase()} ${amount(value)} / ${amount(max)}`);
     }
     const area = (state.areas || state.world?.areas || []).find((a) => a.id === state.currentArea);
     setText('.area-name', area?.name || 'Emerald Glade');
@@ -570,6 +570,15 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     auto.classList.toggle('active', Boolean(state.auto));
     auto.setAttribute('aria-pressed', String(Boolean(state.auto)));
     setText('.auto-button small', state.auto ? 'ON' : 'OFF');
+    const pet = state.pet;
+    setText(
+      '.pet-status span',
+      pet?.healFlash > 0
+        ? 'Healing you ♥'
+        : `${pet?.mode === 'looting' ? 'Collecting loot' : 'Auto loot'} · ${pet?.healCooldown > 0 ? `Heal ${Math.ceil(pet.healCooldown)}s` : 'Heal ready'}`,
+    );
+    $('.pet-status').classList.toggle('healing', pet?.healFlash > 0);
+    $('.identity').classList.toggle('low-hp', p.hp < p.maxHp * 0.3);
     const q = state.quest || {};
     setText(
       '.quest-progress',
