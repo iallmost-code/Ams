@@ -1,0 +1,22 @@
+{
+  "name": "aetherstory-m",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An original offline-ready mobile fantasy auto-RPG",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build && node scripts/build-sw.js",
+    "build:html": "node scripts/build-html.js",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "vite": "^7.1.12"
+  }
+}

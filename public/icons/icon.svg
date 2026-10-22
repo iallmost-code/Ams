@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs><radialGradient id="sky"><stop stop-color="#287878"/><stop offset="1" stop-color="#102e35"/></radialGradient><linearGradient id="blade" x2="1" y2="1"><stop stop-color="#fff8d6"/><stop offset="1" stop-color="#88c9bf"/></linearGradient></defs>
+<rect width="512" height="512" rx="104" fill="url(#sky)"/>
+<circle cx="256" cy="256" r="183" fill="none" stroke="#b78c47" stroke-width="5"/>
+<circle cx="256" cy="256" r="169" fill="none" stroke="#548c7b" stroke-width="2"/>
+<path d="M140 340C119 277 141 214 206 194c20 70-2 119-66 146Z" fill="#77ae73"/>
+<path d="M143 337c14-53 31-91 52-127" fill="none" stroke="#d1d58b" stroke-width="5"/>
+<path d="M307 339c-3-56 20-95 74-113 10 58-14 94-74 113Z" fill="#528c69"/>
+<path d="m316 325 50-82" stroke="#afc77a" stroke-width="4"/>
+<path d="m204 309 109-156 46-28-10 54-116 150Z" fill="url(#blade)" stroke="#f8df9b" stroke-width="5" stroke-linejoin="round"/>
+<path d="m222 315 120-164" stroke="#539c9b" stroke-width="5"/>
+<path d="m185 286 73 48-13 19-74-47Z" fill="#e1b257" stroke="#765836" stroke-width="5" stroke-linejoin="round"/>
+<path d="m199 314 23 16-40 58-23-16Z" fill="#925c4a" stroke="#e6b65e" stroke-width="5"/>
+<path d="m158 370 26 17-8 13-29-17Z" fill="#efc96c"/>
+<path d="m288 97 7 20 20 7-20 7-7 20-7-20-20-7 20-7Z" fill="#ffe5a1"/>
+<path d="m371 299 6 15 15 6-15 6-6 15-6-15-15-6 15-6Z" fill="#ffe5a1"/>
+<circle cx="145" cy="166" r="6" fill="#ffe5a1"/><circle cx="275" cy="390" r="5" fill="#ffe5a1"/>
+</svg>
