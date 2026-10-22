@@ -20,6 +20,7 @@ const js = scripts[0].code.replace(/<\/script/gi, '<\\/script');
 const html = String(page.source)
   .replace(/<script\b[^>]*src=[^>]*>[\s\S]*?<\/script>/gi, '')
   .replace(/<link\b[^>]*rel=["'](?:stylesheet|manifest|icon|apple-touch-icon)["'][^>]*>/gi, '')
+  .replace(/^[\t ]+$/gm, '')
   .replace('</head>', `<style>${css}</style>\n</head>`)
   .replace('</body>', `<script>\n(()=>{\n${js}\n})();\n</script>\n</body>`);
 const outputPath = resolve(process.argv[2] || 'artifacts/AetherStory.html');
