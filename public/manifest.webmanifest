@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "AetherStory M",
+  "short_name": "AetherStory",
+  "description": "A pocket woodland adventure through the skies of Aetheria.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#153b3d",
+  "theme_color": "#d6ac5d",
+  "lang": "en",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
