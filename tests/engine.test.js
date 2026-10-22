@@ -159,11 +159,11 @@ test('death rewards occur once, drops can be collected, and enemies respawn on t
   engine.updateGame(s, { attack: true }, 1 / 120);
   assert.equal(s.kills, 1);
   const xp = s.player.xp;
+  const gold = s.player.gold;
   step(s, {}, 0.8);
   assert.equal(s.kills, 1);
   assert.equal(s.player.xp, xp);
-  assert.ok(s.drops.length);
-  const gold = s.player.gold;
+  assert.ok(s.drops.length || s.player.gold > gold, 'Pip may already have collected the reward');
   for (const d of s.drops) {
     d.x = s.player.x;
     d.y = s.player.y;
@@ -211,14 +211,14 @@ test('equipment replacement, salvage, potion, class advancement, forging, skill 
   assert.equal(s.skillLevels[0], 2);
   assert.equal(engine.upgradeSkill(s, 3), false);
   assert.equal(engine.travelToArea(s, 'ember_altar'), false);
-  s.player.level = 10;
+  s.player.level = 20;
   step(s, {}, 0.02);
   assert.equal(engine.travelToArea(s, 'ember_altar'), true);
   assert.equal(s.currentArea, 'ember_altar');
   assert.ok(s.enemies.some((e) => e.isBoss && e.telegraph !== undefined));
   const saved = engine.serializeGame(s, { sound: false });
   const restored = engine.createGame(saved);
-  assert.equal(restored.player.level, 10);
+  assert.equal(restored.player.level, 20);
   assert.equal(restored.player.equipment.weapon.stars, 1);
   assert.equal(restored.skillLevels[0], 2);
   assert.equal(restored.currentArea, 'ember_altar');
@@ -235,9 +235,9 @@ test('quest can only be claimed once and grants advancement', () => {
 });
 test('leveling consumes experience thresholds and unlocks areas', () => {
   const s = engine.createGame();
-  s.player.xp = 10000;
+  s.player.xp = 250000;
   step(s, {}, 0.01);
-  assert.ok(s.player.level >= 6);
+  assert.ok(s.player.level >= 16);
   assert.ok(s.unlockedAreas.includes('crystal_cavern'));
   assert.ok(s.sp > 0);
   assert.ok(s.player.maxHp > 100);
@@ -248,14 +248,14 @@ test('locked borders stop manual entry until level unlocks the next area', () =>
   step(s, { right: true }, 2);
   assert.ok(s.player.x + s.player.w <= 1200);
   assert.equal(s.currentArea, 'emerald_glade');
-  s.player.level = 3;
+  s.player.level = 10;
   step(s, { right: true }, 1);
   assert.ok(s.player.x > 1200);
   assert.equal(s.currentArea, 'whispering_canopy');
 });
 test('boss announces a damaging strike long enough to evade it', () => {
   const s = engine.createGame();
-  s.player.level = 12;
+  s.player.level = 20;
   engine.travelToArea(s, 'ember_altar');
   const boss = s.enemies.find((e) => e.isBoss);
   s.enemies = [boss];
@@ -266,7 +266,7 @@ test('boss announces a damaging strike long enough to evade it', () => {
   const hp = s.player.hp;
   step(s, {}, 0.65);
   assert.equal(s.player.hp, hp, 'warning causes no immediate damage');
-  step(s, {}, 0.5);
+  step(s, {}, 0.7);
   assert.ok(s.player.hp < hp, 'announced strike deals damage');
   s.player.invuln = 0;
   s.player.hp = s.player.maxHp;
@@ -274,7 +274,7 @@ test('boss announces a damaging strike long enough to evade it', () => {
   engine.updateGame(s, {}, 1 / 120);
   s.player.x = boss.x - 500;
   const safe = s.player.hp;
-  step(s, {}, 1.2);
+  step(s, {}, 1.6);
   assert.equal(s.player.hp, safe, 'moving outside telegraph avoids damage');
 });
 test('manual skill presses are edges, while mana regenerates without attacks', () => {
@@ -429,4 +429,87 @@ test('rope descent lands safely at bottom, and lateral input detaches mid-rope',
   engine.updateGame(s, { right: true }, 1 / 120);
   assert.equal(s.player.climbing, null);
   assert.ok(s.player.vx > 0);
+});
+
+test('Pip flies to loot in manual mode and collects each drop once', () => {
+  const s = empty();
+  const gold = s.player.gold;
+  s.drops.push({
+    id: 'pet-test',
+    x: s.player.x + 210,
+    y: s.player.y + 25,
+    w: 10,
+    h: 10,
+    type: 'gold',
+    amount: 37,
+    age: 0,
+  });
+  step(s, {}, 2);
+  assert.equal(s.player.gold, gold + 37);
+  assert.equal(s.drops.length, 0);
+  step(s, {}, 2);
+  assert.equal(s.player.gold, gold + 37);
+  assert.equal(s.auto, false);
+});
+test('Pip heals living injured heroes with a cooldown, without consuming potions', () => {
+  const s = empty();
+  s.player.hp = Math.floor(s.player.maxHp * 0.4);
+  const hp = s.player.hp;
+  const potions = JSON.stringify(s.player.inventory);
+  step(s, {}, 0.1);
+  assert.ok(s.player.hp > hp);
+  assert.ok(s.player.hp <= s.player.maxHp);
+  const healed = s.player.hp;
+  step(s, {}, 1);
+  assert.equal(s.player.hp, healed);
+  assert.equal(JSON.stringify(s.player.inventory), potions);
+  assert.ok(s.pet.healCooldown > 0);
+  s.player.hp = 0;
+  s.pet.healCooldown = 0;
+  step(s, {}, 0.1);
+  assert.equal(s.player.hp, 0);
+});
+test('analog movement supports a gentle walking speed', () => {
+  const s = empty();
+  step(s, { moveX: 0.5, right: true }, 0.1);
+  const slow = s.player.vx;
+  assert.equal(s.player.facing, 1, 'analog input must not shrink the facing transform');
+  step(s, { right: true }, 0.1);
+  assert.ok(slow > 0 && slow < s.player.vx * 0.6);
+});
+
+test('Pip collects equipment, leaves distant loot, and follows after travel', () => {
+  const s = empty();
+  const item = { id: 'pip-loot', name: 'Pip charm', type: 'cape', rarity: 'rare', count: 1 };
+  s.drops.push({
+    id: 'pet-item',
+    x: s.player.x + 180,
+    y: s.player.y + 15,
+    w: 10,
+    h: 10,
+    type: 'item',
+    item,
+    age: 0,
+  });
+  s.drops.push({
+    id: 'distant',
+    x: s.player.x + 700,
+    y: s.player.y,
+    w: 10,
+    h: 10,
+    type: 'gold',
+    amount: 99,
+    age: 0,
+  });
+  step(s, {}, 2);
+  assert.equal(s.player.inventory.filter((i) => i.id === item.id).length, 1);
+  assert.equal(s.drops.length, 1);
+  const cooldown = s.pet.healCooldown;
+  s.paused = true;
+  step(s, {}, 1);
+  assert.equal(s.pet.healCooldown, cooldown);
+  s.paused = false;
+  s.player.x = 2500;
+  step(s, {}, 0.1);
+  assert.ok(Math.abs(s.pet.x - s.player.x) < 100);
 });

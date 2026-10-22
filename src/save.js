@@ -5,7 +5,7 @@ export const SAVE_KEY = 'aetherstory_v4';
 export const MAX_SAVE_BYTES = 2_000_000;
 const slots = ['weapon', 'hat', 'armor', 'cape', 'gloves', 'boots'];
 const areas = ['emerald_glade', 'whispering_canopy', 'crystal_cavern', 'ember_altar'];
-const areaLevels = [1, 3, 6, 10];
+const areaLevels = [1, 10, 16, 20];
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, min, max, fallback) =>
   typeof value === 'number' && Number.isFinite(value)
@@ -151,13 +151,18 @@ function normalize(value) {
       level,
       xp: number(value.player.xp, 0, 1e9, 0),
       gold: number(value.player.gold, 0, 1e9, 300),
+      deaths: number(value.player.deaths, 0, 1e9, 0),
+    },
+    upgrades: {
+      vitality: number(value.upgrades?.vitality, 0, 10, 0),
+      mastery: number(value.upgrades?.mastery, 0, 10, 0),
     },
     inventory: (Array.isArray(value.inventory) ? value.inventory : [])
       .map((v) => item(v))
       .filter(Boolean),
     equipment: Object.fromEntries(slots.map((slot) => [slot, item(value.equipment?.[slot], slot)])),
     settings: Object.fromEntries(
-      ['sound', 'music', 'particles', 'reducedMotion'].map((key) => [
+      ['sound', 'music', 'particles', 'reducedMotion', 'minimapCollapsed'].map((key) => [
         key,
         typeof settings[key] === 'boolean' ? settings[key] : key !== 'reducedMotion',
       ]),

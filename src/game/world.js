@@ -17,7 +17,7 @@ export const AREA_DEFINITIONS = [
   {
     id: 'whispering_canopy',
     name: 'Whispering Canopy',
-    minLevel: 3,
+    minLevel: 10,
     theme: 'canopy',
     x: 1200,
     end: 2400,
@@ -26,7 +26,7 @@ export const AREA_DEFINITIONS = [
   {
     id: 'crystal_cavern',
     name: 'Crystal Cavern',
-    minLevel: 6,
+    minLevel: 16,
     theme: 'crystal',
     x: 2400,
     end: 3600,
@@ -35,7 +35,7 @@ export const AREA_DEFINITIONS = [
   {
     id: 'ember_altar',
     name: 'Ember Altar',
-    minLevel: 10,
+    minLevel: 20,
     theme: 'ember',
     x: 3600,
     end: 4800,
@@ -82,7 +82,7 @@ export function createWorld() {
 export function createEnemies(world) {
   const result = [];
   for (let a = 0; a < 4; a++) {
-    const level = [1, 3, 6, 10][a];
+    const level = [1, 10, 16, 20][a];
     for (let i = 0; i < 6; i++) {
       const platform = world.platforms.find(
         (p) => p.id === (i < 3 ? 'ground' : `${a}-${['low', 'mid', 'high'][i - 3]}`),
@@ -99,13 +99,15 @@ export function createEnemies(world) {
         w,
         h,
         vx: (i % 2 ? 1 : -1) * (24 + level * 2),
-        hp: 42 + level * 17,
-        maxHp: 42 + level * 17,
+        hp: [80, 900, 2300, 4500][a],
+        maxHp: [80, 900, 2300, 4500][a],
+        damage: [16, 110, 230, 330][a],
         platformId: platform.id,
         facing: i % 2 ? 1 : -1,
         attackTimer: 0,
         respawnTimer: 0,
         level,
+        areaRank: a,
         hitTimer: 0,
         deathTimer: 0,
         spawnX: x,
@@ -125,8 +127,8 @@ export function createEnemies(world) {
     w: 150,
     h: 120,
     vx: 0,
-    hp: 2400,
-    maxHp: 2400,
+    hp: 150000,
+    maxHp: 150000,
     platformId: 'ground',
     facing: -1,
     attackTimer: 2,

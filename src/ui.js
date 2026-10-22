@@ -1,3 +1,4 @@
+import { forgeCost, upgradeCost, POTION_PRICE } from './game/balance.js';
 const PATHS = {
   sword: 'm5 19 4-4m-3-3 6 6m-2-7 8-8 3 0 0 3-8 8M3 21l3-3',
   map: 'm3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Zm6-2v16m6-14v16',
@@ -47,12 +48,12 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     <div class="top-hud">
       <button class="identity glass" data-action="character" aria-label="Open character"><span class="portrait">${icon('sword')}</span><span class="identity-copy"><b>Aether</b><span class="class-name">Vanguard · Adventurer</span><span class="vital hp"><i></i><span data-testid="hp">100 / 100</span></span><span class="vital mp"><i></i><span>60 / 60</span></span></span><span class="level-badge" data-testid="level">1</span></button>
       <div class="journey"><div class="brand">AETHERSTORY <small>M</small></div><span>CHRONICLES OF AETHERIA</span><div class="area-pill">${icon('leaf')}<b class="area-name">Emerald Glade</b><i></i><span>FIELD</span></div></div>
-      <div class="top-right"><div class="wallet"><span>${icon('coin')}<b class="gold" data-testid="gold">300</b></span><span>${icon('star')}<b class="cores">5</b></span></div><nav class="quick-nav" aria-label="Adventure menus">${button('map', 'Map', 'map')}${button('inventory', 'Bag', 'bag')}${button('forge', 'Forge', 'forge')}${button('skills', 'Skills', 'spark')}${button('class', 'Class', 'class')}${button('pause', 'Pause', 'pause', 'aria-label="Pause game"')}</nav></div>
+      <div class="top-right"><div class="wallet"><span>${icon('coin')}<b class="gold" data-testid="gold">300</b></span><span>${icon('star')}<b class="cores">5</b></span></div><nav class="quick-nav" aria-label="Adventure menus">${button('map', 'Map', 'map')}${button('shop', 'Shop', 'coin')}${button('inventory', 'Bag', 'bag')}${button('forge', 'Forge', 'forge')}${button('skills', 'Skills', 'spark')}${button('class', 'Class', 'class')}${button('pause', 'Pause', 'pause', 'aria-label="Pause game"')}</nav></div>
     </div>
-    <aside class="field-info"><button class="minimap glass" data-action="map" aria-label="Open world map"><canvas width="190" height="70" aria-hidden="true"></canvas><span class="map-caption">EMERALD GLADE ${icon('map')}</span></button><div class="quest glass"><div class="eyebrow">STORY QUEST <span>01</span></div><b>A little courage</b><p>Help Elder Rowan clear the woodland.</p><div><span class="quest-progress">Defeat creatures · 0 / 6</span><button data-action="claim" class="claim" disabled>Claim ${icon('arrow')}</button></div><div class="quest-line"><i></i></div></div></aside>
+    <aside class="field-info"><button class="minimap-toggle glass" data-action="toggle-minimap" aria-label="Toggle mini-map" aria-expanded="false">${icon('map')}<span>MINI-MAP</span></button><button class="minimap glass" data-action="map" aria-label="Open world map"><canvas width="190" height="70" aria-hidden="true"></canvas><span class="map-caption">EMERALD GLADE ${icon('map')}</span></button><div class="quest glass"><div class="eyebrow">STORY QUEST <span>01</span></div><b>A little courage</b><p>Help Elder Rowan clear the woodland.</p><div><span class="quest-progress">Defeat creatures · 0 / 6</span><button data-action="claim" class="claim" disabled>Claim ${icon('arrow')}</button></div><div class="quest-line"><i></i></div></div></aside>
     <div class="notice" role="status" aria-live="polite"></div>
     <div class="portrait-tip">${icon('map')} More room to explore in landscape</div>
-    <div class="bottom-hud"><div class="movement"><div class="dpad" aria-label="Movement controls"><button data-control="up" class="up" aria-label="Climb up">${icon('arrow')}</button><button data-control="left" class="left" aria-label="Move left">${icon('arrow')}</button><span class="dpad-center"></span><button data-control="right" class="right" aria-label="Move right">${icon('arrow')}</button><button data-control="down" class="down" aria-label="Climb down">${icon('arrow')}</button></div><span class="key-hint">W A S D · MOVE</span></div><div class="bottom-center"><button class="auto-button" data-action="auto" aria-pressed="false"><span class="auto-dot"></span>AUTO <small>OFF</small></button><div class="utility-controls"><button data-control="interact" aria-label="Collect or interact">${icon('leaf')}<span>Collect <kbd>E</kbd></span></button><button data-action="potion" aria-label="Use health potion">${icon('potion')}<span class="potion-count">3</span></button></div><div class="save-indicator" data-status="pending" role="status" aria-live="polite"><i></i><span>SAVE PENDING</span></div></div><div class="combat-controls"><div class="skill-wheel">${[0, 1, 2, 3].map((i) => `<button class="skill skill-${i}" data-control="${i ? `skill${i + 1}` : 'skill'}" aria-label="Skill ${i + 1}"><span class="skill-glyph">${icon(['sword', 'spark', 'star', 'leaf'][i])}</span><span class="skill-cooldown"></span><span class="skill-key">${['Z', 'X', 'C', 'V'][i]}</span><span class="skill-level"></span></button>`).join('')}</div><button class="jump-button" data-control="jump" aria-label="Jump">${icon('jump')}<small>JUMP</small></button><button class="attack-button" data-control="attack" aria-label="Attack">${icon('sword')}<span>ATTACK</span><kbd>J</kbd></button></div></div>
+    <div class="bottom-hud"><div class="movement"><div class="joystick" data-joystick role="group" aria-label="Movement joystick"><div class="joystick-ring"></div><span class="joystick-thumb"></span><span class="joystick-label">MOVE · CLIMB</span></div><span class="key-hint">W A S D · MOVE</span></div><div class="bottom-center"><button class="auto-button" data-action="auto" aria-pressed="false"><span class="auto-dot"></span>AUTO <small>OFF</small></button><div class="pet-status" aria-live="off"><b>✦ PIP</b><span>Auto loot · Heal ready</span></div><div class="utility-controls"><button data-control="interact" aria-label="Collect or interact">${icon('leaf')}<span>Collect <kbd>E</kbd></span></button><button data-action="potion" aria-label="Use health potion">${icon('potion')}<span class="potion-count">3</span></button></div><div class="save-indicator" data-status="pending" role="status" aria-live="polite"><i></i><span>SAVE PENDING</span></div></div><div class="combat-controls"><div class="skill-wheel">${[0, 1, 2, 3].map((i) => `<button class="skill skill-${i}" data-control="${i ? `skill${i + 1}` : 'skill'}" aria-label="Skill ${i + 1}"><span class="skill-glyph">${icon(['sword', 'spark', 'star', 'leaf'][i])}</span><span class="skill-cooldown"></span><span class="skill-key">${['Z', 'X', 'C', 'V'][i]}</span><span class="skill-level"></span></button>`).join('')}</div><button class="jump-button" data-control="jump" aria-label="Jump">${icon('jump')}<small>JUMP</small></button><button class="attack-button" data-control="attack" aria-label="Attack">${icon('sword')}<span>ATTACK</span><kbd>J</kbd></button></div></div>
     <div class="experience"><i></i><span>LEVEL 1 · 0 / 100 XP</span></div>
     <div class="modal-layer"><section class="modal" role="dialog" aria-modal="true" aria-label="Adventure menu" tabindex="-1"></section></div>`;
   const $ = (selector) => root.querySelector(selector),
@@ -151,6 +152,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       body = heading(
         'YOUR ADVENTURE',
         {
+          shop: 'Rowan’s supplies',
           inventory: 'Traveler’s satchel',
           character: 'Aether, the adventurer',
           map: 'The world of Aetheria',
@@ -163,6 +165,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
           offline: 'Welcome back, adventurer',
         }[panel] || 'Adventure',
         {
+          shop: 'Prepare for harder hunting grounds. Training and tonics cost gold.',
           inventory: 'Equip your discoveries. Keep a potion close.',
           character: 'Every journey leaves its mark.',
           map: 'New paths open as your story grows.',
@@ -194,6 +197,35 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         stats,
         actionButton('offline-continue', 'Continue adventure', undefined, 'primary'),
       );
+    } else if (panel === 'shop') {
+      const list = node('div', 'shop-list');
+      const tonic = node('article', 'shop-row');
+      tonic.append(
+        node('h2', '', 'Crimson Tonic'),
+        node('p', '', `Restores 45% HP · 10s cooldown · ${POTION_PRICE} gold each`),
+      );
+      const buy = actionButton('buy-potion', 'Buy 5 tonics', 5, 'small-button');
+      buy.disabled = p.gold < POTION_PRICE * 5;
+      const single = actionButton('buy-potion', 'Buy 1 tonic', 1, 'small-button');
+      single.disabled = p.gold < POTION_PRICE;
+      tonic.append(single, buy);
+      list.append(tonic);
+      for (const [type, label, detail] of [
+        ['vitality', 'Vitality', '+25 maximum HP per rank'],
+        ['mastery', 'Weapon mastery', '+4 attack per rank'],
+      ]) {
+        const row = node('article', 'shop-row'),
+          rank = state.upgrades?.[type] || 0;
+        row.append(
+          node('h2', '', `${label} · ${rank}/10`),
+          node('p', '', `${detail} · ${amount(upgradeCost(rank))} gold`),
+        );
+        const train = actionButton('buy-upgrade', `Train ${type}`, type, 'small-button');
+        train.disabled = rank >= 10 || p.gold < upgradeCost(rank);
+        row.append(train);
+        list.append(row);
+      }
+      body.append(list);
     } else if (panel === 'inventory') {
       const equipment = node('div', 'equipment-grid');
       for (const slot of slots) {
@@ -209,7 +241,11 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         );
         equipment.append(cell);
       }
-      body.append(equipment, node('h2', 'section-title', 'IN THE SATCHEL'));
+      body.append(
+        actionButton('shop', 'Visit supply shop', undefined, 'secondary'),
+        equipment,
+        node('h2', 'section-title', 'IN THE SATCHEL'),
+      );
       const list = node('div', 'item-list');
       for (const item of p.inventory || []) list.append(itemRow(item));
       if (!p.inventory?.length)
@@ -356,7 +392,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       const forge = node('div', 'forge-game');
       forge.innerHTML = `<div class="forge-orb">${icon('forge')}</div><p>Find the golden moment</p><div class="timing-track"><span class="success-zone"></span><i class="timing-marker"></i></div><div class="timing-labels"><span>STEADY</span><b>PERFECT</b><span>STEADY</span></div><small class="forge-cost"></small>`;
       forge.querySelector('.forge-cost').textContent =
-        `★ ${n(item?.stars)} / 25 · ${amount(100 + n(item?.stars) * 70)} gold + ${1 + Math.floor(n(item?.stars) / 5)} star core(s) per attempt`;
+        `★ ${n(item?.stars)} / 25 · ${amount(forgeCost(n(item?.stars)).gold)} gold + ${forgeCost(n(item?.stars)).cores} star core(s) per attempt`;
       body.append(forge);
       const go = actionButton(
         forgeRunning ? 'stop-forge' : 'begin-forge',
@@ -368,8 +404,8 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         !item ||
         n(item.stars) >= 25 ||
         (!forgeRunning &&
-          (n(state.starCores) < 1 + Math.floor(n(item?.stars) / 5) ||
-            n(p.gold) < 100 + n(item.stars) * 70));
+          (n(state.starCores) < forgeCost(n(item?.stars)).cores ||
+            n(p.gold) < forgeCost(n(item?.stars)).gold));
       body.append(go);
       if (forgeAttempted && state.notice) {
         const result = node('p', 'forge-result', state.notice);
@@ -481,6 +517,10 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     if (!target || target.disabled) return;
     const action = target.dataset.action,
       payload = target._payload;
+    if (action === 'toggle-minimap') {
+      onSettings({ ...state.settings, minimapCollapsed: !state.settings.minimapCollapsed });
+      return;
+    }
     if (action === 'select-forge') {
       forgeSlot = payload;
       renderPanel();
@@ -542,10 +582,17 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
           ? 'LOCAL ADVENTURE · SESSION ONLY'
           : 'SAVE PENDING',
     );
+    const collapsed = state.settings.minimapCollapsed !== false;
+    root.classList.toggle('minimap-collapsed', collapsed);
+    $('.minimap-toggle').setAttribute('aria-expanded', String(!collapsed));
     const currentClass = getClasses().find((entry) => entry.id === state.classId);
     setText(
       '.class-name',
       `${currentClass?.name || title(state.classId || 'vanguard')} · Adventurer`,
+    );
+    $('.portrait').style.setProperty(
+      '--portrait-row',
+      `${(Math.max(0, ['vanguard', 'arcanist', 'nightblade', 'ranger'].indexOf(state.classId)) * 100) / 3}%`,
     );
     setText('.level-badge', p.level);
     setText('.gold', amount(p.gold));
@@ -556,7 +603,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     ]) {
       $(`.${type} i`).style.width =
         `${Math.max(0, Math.min(100, (n(value) / Math.max(1, n(max))) * 100))}%`;
-      setText(`.${type} span`, `${amount(value)} / ${amount(max)}`);
+      setText(`.${type} span`, `${type.toUpperCase()} ${amount(value)} / ${amount(max)}`);
     }
     const area = (state.areas || state.world?.areas || []).find((a) => a.id === state.currentArea);
     setText('.area-name', area?.name || 'Emerald Glade');
@@ -570,6 +617,15 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     auto.classList.toggle('active', Boolean(state.auto));
     auto.setAttribute('aria-pressed', String(Boolean(state.auto)));
     setText('.auto-button small', state.auto ? 'ON' : 'OFF');
+    const pet = state.pet;
+    setText(
+      '.pet-status span',
+      pet?.healFlash > 0
+        ? 'Healing you ♥'
+        : `${pet?.mode === 'looting' ? 'Collecting loot' : 'Auto loot'} · ${pet?.healCooldown > 0 ? `Heal ${Math.ceil(pet.healCooldown)}s` : 'Heal ready'}`,
+    );
+    $('.pet-status').classList.toggle('healing', pet?.healFlash > 0);
+    $('.identity').classList.toggle('low-hp', p.hp < p.maxHp * 0.3);
     const q = state.quest || {};
     setText(
       '.quest-progress',
@@ -626,6 +682,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         state.unlockedAreas,
         state.damageSkin,
         state.settings,
+        state.upgrades,
       ]);
       if (key !== panelKey && !forgeRunning) {
         panelKey = key;

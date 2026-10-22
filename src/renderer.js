@@ -1,3 +1,4 @@
+import { valleyArt, heroArt, creatureArt, cavernArt, altarArt, pipArt } from './art.js';
 /** Original AetherStory M illustration. All artwork is drawn locally with Canvas. */
 const TAU = Math.PI * 2;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -7,11 +8,11 @@ const noise = (n) => {
 };
 const THEMES = {
   forest: {
-    sky: ['#7fbbb4', '#c1dfba', '#f1e7b5'],
-    far: '#619a8d',
-    mid: '#3f8175',
-    leaf: ['#276d56', '#398058', '#58994f', '#88b35c'],
-    grass: '#78b54f',
+    sky: ['#429fdb', '#a9e4ed', '#f8edbc'],
+    far: '#66b7a5',
+    mid: '#388e80',
+    leaf: ['#176b61', '#21865e', '#55a740', '#a3d85a'],
+    grass: '#a0d74c',
     light: '#fff1a3',
     rock: '#797d60',
     shadow: '#364c47',
@@ -110,9 +111,9 @@ export class Renderer {
     this.dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
     this.canvas.width = Math.round(w * this.dpr);
     this.canvas.height = Math.round(h * this.dpr);
-    this.width = (720 * w) / h;
-    this.height = 720;
-    this.scale = this.canvas.height / 720;
+    this.height = w < 1000 ? 560 : 640;
+    this.width = (this.height * w) / h;
+    this.scale = this.canvas.height / this.height;
   }
   theme(state) {
     const area = state.world?.areas?.find((a) => a.id === state.currentArea);
@@ -172,7 +173,11 @@ export class Renderer {
     for (const effect of state.effects || [])
       if (this.visible(effect.x, 250)) this.drawEffect(effect, false);
     for (const enemy of state.enemies || [])
-      if (this.visible(enemy.x, enemy.w || 80) && !(enemy.respawnTimer > 0)) this.drawEnemy(enemy);
+      if (
+        this.visible(enemy.x, enemy.w || 80) &&
+        (!(enemy.respawnTimer > 0) || enemy.deathTimer > 0)
+      )
+        this.drawEnemy(enemy);
     this.drawPlayer(p, state.classId || 'vanguard');
     if (!p.deadTimer && p.hp > 0) this.drawCompanion(p);
     for (const effect of state.effects || [])
@@ -258,6 +263,41 @@ export class Renderer {
     g.addColorStop(1, p.sky[2]);
     c.fillStyle = g;
     c.fillRect(0, 0, this.width, 720);
+    const scene = (theme === 'crystal' ? cavernArt : theme === 'ember' ? altarArt : valleyArt)
+      .image;
+    if (scene.complete && scene.naturalWidth) {
+      const key = 'painted:' + theme;
+      if (!this.layers.has(key)) {
+        const plate = document.createElement('canvas');
+        plate.width = scene.width;
+        plate.height = scene.height;
+        const pc = plate.getContext('2d');
+        pc.filter =
+          theme === 'canopy'
+            ? 'hue-rotate(20deg) saturate(.6) brightness(.65) blur(1.2px)'
+            : 'saturate(.65) brightness(.85) blur(1.2px)';
+        pc.drawImage(scene, 0, 0);
+        pc.filter = 'none';
+        pc.fillStyle =
+          theme === 'ember' ? '#341e2633' : theme === 'crystal' ? '#22385135' : '#50696445';
+        pc.fillRect(0, 0, plate.width, plate.height);
+        this.layers.set(key, plate);
+      }
+      const image = this.layers.get(key);
+      const width = this.width + 340;
+      const height = Math.max(this.height + 100, (width * image.height) / image.width);
+      const drift = (Math.sin(this.camera.x / 1800) * 0.5 + 0.5) * 180;
+      c.save();
+      c.drawImage(image, -drift, this.height - height - this.camera.y * 0.04 + 75, width, height);
+      c.restore();
+      if (this.particles)
+        for (let i = 0; i < 18; i++) {
+          const x = (noise(i + 12) * this.width + this.t * 5) % this.width;
+          const y = noise(i + 92) * this.height + Math.sin(this.t + i) * 8;
+          ellipse(c, x, y, 1.4, 1.4, '#ffffc9b0');
+        }
+      return;
+    }
     const sunX = this.width * 0.69 - this.camera.x * 0.025,
       sunY = 115 - this.camera.y * 0.09;
     glow(c, sunX, sunY, 240, theme === 'crystal' ? '#bcfaff50' : '#fff9c96b');
@@ -309,17 +349,8 @@ export class Renderer {
   drawWorldScenery(world) {
     const c = this.ctx,
       p = this.palette;
-    for (let i = 0; i < Math.ceil((world.width || 4800) / 650); i++) {
-      const x = 240 + i * 650;
-      if (!this.visible(x - 120, 400)) continue;
-      const base = 820;
-      this.tree(x, base, 340 + noise(i + 5) * 80, noise(i) * 80 + 90, i);
-      if (i % 3 === 2) this.ruin(x + 210, base);
-      if (this.theme(this.state) === 'crystal') this.crystal(c, x + 130, base, 70, 1);
-    }
     for (const area of world.areas || []) {
       if (area.npc && this.visible(area.npc.x - 100, 240)) {
-        this.cottage(area.npc.x - 30, area.npc.y);
         this.drawNPC(area.npc);
       }
       for (const portal of area.portals || []) {
@@ -395,13 +426,17 @@ export class Renderer {
     for (let j = 0; j < 17; j++) {
       const lx = (noise(j + seed * 30) - 0.5) * width * 2.7,
         ly = -height + (noise(j + seed * 30 + 15) - 0.5) * 100;
+      const foliage = c.createRadialGradient(lx - 15, ly - 12, 4, lx, ly, 78);
+      foliage.addColorStop(0, p.leaf[(j + 1) % 4]);
+      foliage.addColorStop(0.65, p.leaf[j % 4]);
+      foliage.addColorStop(1, p.leaf[0]);
       ellipse(
         c,
         lx,
         ly,
         38 + noise(j + 9) * 45,
         23 + noise(j + 13) * 25,
-        p.leaf[j % 4],
+        foliage,
         (noise(j) - 0.5) * 0.6,
       );
     }
@@ -650,105 +685,67 @@ export class Renderer {
   }
   drawPlatform(platform) {
     const c = this.ctx,
-      p = this.palette,
-      { x, y, w } = platform;
-    const ground = y >= 800 || w > 2000;
-    const h = ground ? 220 : Math.min(72, platform.h + 30 || 55);
+      { x, y, w } = platform,
+      theme = this.theme(this.state);
+    const ground = platform.ground || platform.id === 'ground';
+    const h = ground ? 220 : 48;
+    const earth =
+      theme === 'crystal'
+        ? ['#9589bd', '#4f467c']
+        : theme === 'ember'
+          ? ['#a06e61', '#513b46']
+          : ['#cf9b68', '#815039'];
     c.save();
     c.translate(x, y);
-    const stone = c.createLinearGradient(0, 0, 0, h);
-    stone.addColorStop(0, p.rock);
-    stone.addColorStop(1, p.shadow);
-    if (ground) {
-      c.fillStyle = stone;
-      c.fillRect(0, 4, w, h);
-      path(c, `M 0 8 L ${w} 8 L ${w} 35 Q ${w * 0.6} 23 0 37 Z`, '#5b6b4f');
-      const left = Math.max(0, Math.floor((this.camera.x - x - 80) / 70)),
-        right = Math.min(Math.ceil(w / 70), Math.ceil((this.camera.x + this.width - x + 80) / 70));
-      for (let i = left; i < right; i++) {
-        const sx = i * 70 + noise(i) * 22,
-          sy = 46 + noise(i + 3) * 126;
-        c.globalAlpha = 0.14;
-        path(c, `M ${sx} ${sy} l 12 -3 l 9 6 l -6 7 l -14 -2 Z`, '#e0d2aa');
-        line(
-          c,
-          [
-            [sx + 23, sy - 17],
-            [sx + 38, sy - 19],
-            [sx + 49, sy - 15],
-          ],
-          '#273e37',
-          2,
-        );
-        c.globalAlpha = 1;
-        if (i % 3 === 0)
-          path(
-            c,
-            `M ${sx} 18 Q ${sx - 12} 40 ${sx + 4} 60 Q ${sx + 10} 71 ${sx - 3} 83`,
-            null,
-            '#536248',
-            2,
-          );
-      }
-    } else {
-      path(
-        c,
-        `M 2 4 L ${w - 2} 4 L ${w - 8} 26 L ${w * 0.82} 34 L ${w * 0.74} ${h - 8} L ${w * 0.58} ${h - 15} L ${w * 0.43} ${h + 4} L ${w * 0.25} ${h - 13} L 16 34 Z`,
-        stone,
-        p.shadow,
-        2,
-      );
-      path(
-        c,
-        `M 19 20 L ${w * 0.25} 30 L ${w * 0.36} ${h - 5} L ${w * 0.22} ${h - 16} Z`,
-        '#c3b69044',
-      );
-      path(
-        c,
-        `M ${w * 0.66} 17 L ${w * 0.57} 34 L ${w * 0.62} ${h - 12} L ${w * 0.77} 30 Z`,
-        '#344b4844',
-      );
-      for (let i = 0; i < Math.floor(w / 60); i++) {
-        const rx = 35 + i * 60;
-        path(
-          c,
-          `M ${rx} 21 Q ${rx - 8} 53 ${rx + 9} ${h + 20} Q ${rx + 13} ${h + 31} ${rx - 1} ${h + 40}`,
-          null,
-          '#615f40',
-          3,
-        );
-        line(
-          c,
-          [
-            [rx + 4, h + 11],
-            [rx + 15, h + 18],
-          ],
-          '#61734b',
-          2,
-        );
-      }
-    }
-    const grass = c.createLinearGradient(0, -8, 0, 19);
-    grass.addColorStop(0, '#c0d87c');
-    grass.addColorStop(0.25, p.grass);
-    grass.addColorStop(1, p.leaf[1]);
+    const soil = c.createLinearGradient(0, 8, 0, h);
+    soil.addColorStop(0, earth[0]);
+    soil.addColorStop(1, earth[1]);
     path(
       c,
-      `M 0 1 Q 6 -8 18 -5 L ${w - 18} -5 Q ${w - 5} -8 ${w} 2 L ${w - 3} 13 Q ${w - 13} 20 ${w - 24} 12 L 22 12 Q 9 23 2 11 Z`,
-      grass,
-      p.leaf[0],
+      ground
+        ? `M 0 0 H ${w} V ${h} H 0 Z`
+        : `M 0 0 H ${w} L ${w - 5} 24 Q ${w - 12} 39 ${w - 28} 39 L ${w * 0.7} 46 L ${w * 0.44} 43 L 28 46 Q 8 40 3 23 Z`,
+      soil,
+      '#6a432d',
+      2,
+    );
+    const start = Math.max(0, Math.floor((this.camera.x - x - 30) / 14) * 14),
+      end = Math.min(w, this.camera.x + this.width - x + 30);
+    c.save();
+    for (let xx = start; xx < end; xx += 14) {
+      const seed = noise(xx + x);
+      const depth = ground ? 180 : 26;
+      c.fillStyle = seed > 0.5 ? '#f3c88e55' : '#57382755';
+      c.fillRect(xx, 20 + noise(xx + 29) * depth, 3 + seed * 6, 2 + seed * 3);
+      if (!ground && seed > 0.78) {
+        path(c, `M ${xx} 37 q -4 16 4 24 q 8 10 -2 19`, null, '#4d7c38', 2);
+        ellipse(c, xx + 4, 58, 5, 2, '#83b653', 0.6);
+      }
+    }
+    c.restore();
+    const turf =
+      theme === 'crystal'
+        ? ['#b7c6ff', '#637bb0']
+        : theme === 'ember'
+          ? ['#ebbd69', '#b37543']
+          : ['#c4ee65', '#58a334'];
+    path(
+      c,
+      `M 0 0 Q 3 -8 12 -7 H ${w - 12} Q ${w - 2} -8 ${w} 0 L ${w - 2} 10 Q ${w - 8} 20 ${w - 17} 10 H 18 Q 8 24 2 11 Z`,
+      turf[1],
+      '#47712d',
       1.5,
     );
-    const start = Math.max(0, Math.floor((this.camera.x - x - 30) / 18) * 18),
-      end = Math.min(w, this.camera.x + this.width - x + 30);
-    for (let gx = start; gx < end; gx += 18) {
-      const s = noise(gx + x);
-      path(c, `M ${gx} 0 l -4 ${-5 - s * 5} l 7 5 l 3 -9 l 3 9 l 6 -4 l -3 7`, p.grass);
-      if (s > 0.87) this.flower(gx, -2, gx + x);
-    }
-    if (!ground && w > 140) {
-      ellipse(c, w * 0.8, 2, 17, 6, p.leaf[1]);
-      ellipse(c, w * 0.8, -2, 12, 6, '#8da76b');
+    path(c, `M 3 -1 Q 8 -8 17 -6 H ${w - 14} Q ${w - 3} -7 ${w - 2} 0 L ${w - 7} 5 H 8 Z`, turf[0]);
+    for (let xx = start; xx < end; xx += 13) {
+      const seed = noise(xx + x),
+        sway = this.motion ? Math.sin(this.t * 2 + xx * 0.05) * 2 : 0;
+      path(
+        c,
+        `M ${xx} 1 q ${-3 + sway} -10 0 -8 l 4 6 l ${2 + sway} -12 l 3 10 l 4 -5 l -2 8`,
+        seed > 0.5 ? turf[0] : '#8fce47',
+      );
+      if (seed > 0.92) this.flower(xx, -5, xx + x);
     }
     c.restore();
   }
@@ -806,6 +803,48 @@ export class Renderer {
     c.restore();
   }
   drawPlayer(player, classId) {
+    if (heroArt.image.complete && heroArt.image.naturalWidth) {
+      const c = this.ctx,
+        image = heroArt.image;
+      const row = Math.max(0, ['vanguard', 'arcanist', 'nightblade', 'ranger'].indexOf(classId));
+      const moving = Math.abs(player.vx) > 8 || player.climbing;
+      const attacking = player.attackAnimation > 0 || player.skillAnimation > 0;
+      const col = attacking ? 3 : moving ? (Math.floor(this.t * 9) % 2) + 1 : 0;
+      const cellW = image.width / 4,
+        cellH = image.height / 4;
+      const size = 105,
+        x = player.x + player.w / 2,
+        feet = player.y + player.h;
+      ellipse(c, x, feet + 2, 25, 5, '#4a382e35');
+      c.save();
+      c.translate(x, feet);
+      c.scale(player.facing < 0 ? -1 : 1, 1);
+      if (player.hp <= 0 || player.deadTimer > 0) {
+        c.translate(0, -20);
+        c.rotate(-1.4);
+        c.globalAlpha = 0.6;
+      } else if (player.invuln > 0) c.globalAlpha = 0.65 + Math.sin(this.t * 36) * 0.25;
+      const bob = !moving && this.motion ? Math.sin(this.t * 2) * 0.6 : 0;
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = 'high';
+      c.drawImage(heroArt.frames[row * 4 + col], -size * 0.5, -size - bob, size, size);
+      if (attacking && player.hp > 0) {
+        c.globalCompositeOperation = 'screen';
+        path(c, 'M 12 -89 Q 110 -48 25 -3 Q 86 -47 12 -89', '#fff8b8b0');
+        path(c, 'M 18 -83 Q 98 -45 30 -9', null, '#ffffff', 2);
+      }
+      c.restore();
+      c.save();
+      c.font = 'bold 11px Inter, sans-serif';
+      c.textAlign = 'center';
+      c.fillStyle = '#ffffff';
+      c.strokeStyle = '#624827';
+      c.lineWidth = 3;
+      c.strokeText('Aether', x, feet + 17);
+      c.fillText('Aether', x, feet + 17);
+      c.restore();
+      return;
+    }
     const c = this.ctx,
       w = player.w || 34,
       h = player.h || 56,
@@ -818,7 +857,7 @@ export class Renderer {
     const airborne = player.grounded === false && !climb;
     const face = player.facing < 0 ? -1 : 1;
     const colors = {
-      vanguard: { hair: '#784738', cape: '#d3654e', armor: '#4a8c8c', trim: '#f4cf7b' },
+      vanguard: { hair: '#783c35', cape: '#f26660', armor: '#309fb4', trim: '#ffe290' },
       arcanist: { hair: '#e4cb9c', cape: '#826fa6', armor: '#5b71a1', trim: '#f4d48a' },
       nightblade: { hair: '#d7dce7', cape: '#655385', armor: '#43516b', trim: '#a3d7dd' },
       ranger: { hair: '#a7653c', cape: '#5b8354', armor: '#648b76', trim: '#efd494' },
@@ -826,7 +865,7 @@ export class Renderer {
     ellipse(c, player.x + w / 2, player.y + h + 2, w * 0.7, 5, '#24453936');
     c.save();
     c.translate(player.x + w / 2, player.y + h);
-    c.scale((face * h) / 65, h / 65);
+    c.scale((face * h * 1.22) / 65, (h * 1.22) / 65);
     if (dead) {
       c.translate(0, -8);
       c.rotate(-1.35);
@@ -1127,24 +1166,112 @@ export class Renderer {
   }
   drawCompanion(player) {
     const c = this.ctx,
-      x = player.x - (player.facing || 1) * 30,
-      y = player.y + 10 + Math.sin(this.t * 3) * 5;
+      pet = this.state.pet;
+    if (!pet) return;
+    const x = pet.x,
+      y = pet.y + Math.sin(this.t * 4) * 3;
+    if (pet.healFlash > 0) {
+      c.save();
+      c.globalAlpha = Math.min(1, pet.healFlash);
+      glow(c, player.x + player.w / 2, player.y + 30, 90, '#67ffb077');
+      line(
+        c,
+        [
+          [x, y],
+          [player.x + player.w / 2, player.y + 20],
+        ],
+        '#9dffd2',
+        3,
+      );
+      for (let i = 0; i < 6; i++) {
+        const px = player.x + player.w / 2 + Math.sin(i * 2.4 + this.t * 2) * 35;
+        const py = player.y + 40 - ((this.t * 45 + i * 17) % 85);
+        line(
+          c,
+          [
+            [px - 4, py],
+            [px + 4, py],
+          ],
+          '#b2ffcf',
+          2,
+        );
+        line(
+          c,
+          [
+            [px, py - 4],
+            [px, py + 4],
+          ],
+          '#b2ffcf',
+          2,
+        );
+      }
+      c.restore();
+    }
     c.save();
     c.translate(x, y);
-    glow(c, 0, 0, 16, '#fff3b645');
-    ellipse(c, -7, -3, 7, 3, '#edfbef90', -0.4);
-    ellipse(c, 7, -3, 7, 3, '#edfbef90', 0.4);
-    path(c, 'M -6 0 Q -9 -10 0 -10 Q 10 -10 7 0 L 4 6 L -3 5 Z', '#e8d58e', '#707852', 1);
-    path(
-      c,
-      'M -2 -10 Q -6 -18 -10 -14 Q -8 -9 -2 -10 M 1 -10 Q 4 -17 8 -15 Q 8 -10 1 -10',
-      '#83ae6b',
-    );
-    ellipse(c, -2, -2, 1, 1.5, '#3d5b52');
-    ellipse(c, 3, -2, 1, 1.5, '#3d5b52');
+    c.scale(player.facing < 0 ? -1 : 1, 1);
+    const frame = pet.healFlash > 0 ? 3 : pet.mode === 'looting' ? 2 : Math.floor(this.t * 7) % 2;
+    if (pipArt.frames[frame]) c.drawImage(pipArt.frames[frame], -38, -42, 76, 76);
+    c.restore();
+    c.save();
+    c.textAlign = 'center';
+    c.font = 'bold 11px Inter, sans-serif';
+    c.lineWidth = 3;
+    c.strokeStyle = '#174458';
+    c.fillStyle = '#d4ffff';
+    c.strokeText('PIP', x, y + 37);
+    c.fillText('PIP', x, y + 37);
+    c.restore();
+    // Player HP remains visible beside the action, even on a small phone.
+    c.save();
+    const hx = player.x + player.w / 2,
+      hy = player.y + player.h - 112;
+    c.fillStyle = '#173443cc';
+    c.beginPath();
+    c.roundRect(hx - 29, hy, 58, 7, 4);
+    c.fill();
+    c.fillStyle = player.hp < player.maxHp * 0.3 ? '#ff756d' : '#7bffc2';
+    c.beginPath();
+    c.roundRect(hx - 27, hy + 2, 54 * Math.max(0, player.hp / player.maxHp), 3, 2);
+    c.fill();
     c.restore();
   }
   drawEnemy(enemy) {
+    if (
+      !enemy.isBoss &&
+      !['boss', 'guardian'].includes(enemy.type) &&
+      creatureArt.image.complete &&
+      creatureArt.image.naturalWidth
+    ) {
+      if (enemy.hp <= 0 && !enemy.deathTimer) return;
+      const c = this.ctx,
+        image = creatureArt.image;
+      const row = { slime: 0, mushroom: 1, wisp: 2, boar: 3 }[enemy.type] || 0;
+      const hurt = enemy.hitTimer > 0 || enemy.hp <= 0;
+      const col = hurt ? 3 : Math.floor(this.t * 5 + enemy.x * 0.01) % 3;
+      const sw = image.width / 4,
+        sh = image.height / 4,
+        size = Math.max(enemy.w + 16, enemy.h * 1.5);
+      const x = enemy.x + enemy.w / 2,
+        feet = enemy.y + enemy.h;
+      ellipse(c, x, feet + 2, size * 0.32, 4, '#59432d30');
+      c.save();
+      c.translate(x, feet);
+      c.scale(enemy.facing < 0 ? -1 : 1, 1);
+      if (enemy.hp <= 0) c.globalAlpha = Math.max(0, enemy.deathTimer / 0.5);
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = 'high';
+      const bob = this.motion && !hurt ? Math.sin(this.t * 5 + enemy.x) * 1.2 : 0;
+      c.drawImage(creatureArt.frames[row * 4 + col], -size / 2, -size - bob, size, size);
+      c.restore();
+      if (enemy.hp > 0 && enemy.hp < enemy.maxHp) {
+        c.fillStyle = '#5c382bdd';
+        c.fillRect(x - 23, feet - size - 7, 46, 5);
+        c.fillStyle = '#fa8270';
+        c.fillRect(x - 22, feet - size - 6, 44 * clamp(enemy.hp / enemy.maxHp, 0, 1), 3);
+      }
+      return;
+    }
     const c = this.ctx,
       w = enemy.w || 48,
       h = enemy.h || 38;
@@ -1450,12 +1577,28 @@ export class Renderer {
       { vanguard: '#ffda8c', arcanist: '#c9b5ff', ranger: '#c7f0a5', nightblade: '#c4bdff' }[
         effect.classId || this.state.classId
       ] || '#ffe8a2';
-    if (front !== !['telegraph', 'boss-slam', 'nova', 'ultimate', 'levelup'].includes(kind)) return;
+    if (
+      front !==
+      !['telegraph', 'boss-slam', 'boss-meteor', 'nova', 'ultimate', 'levelup'].includes(kind)
+    )
+      return;
     c.save();
     c.translate(effect.x || 0, effect.y || 0);
     c.globalAlpha = alpha;
-    if (kind === 'telegraph') {
-      ellipse(c, 0, 0, radius, 22, '#f26c474a');
+    if (kind === 'boss-meteor') {
+      glow(c, 0, -150, 130, '#ff572299');
+      path(c, 'M -32 -330 L 25 -330 L 45 0 L -38 0 Z', '#ffe392aa');
+      ellipse(c, 0, -25, 55, 40, '#ff8b35dd');
+    } else if (kind === 'telegraph') {
+      ellipse(c, 0, 0, radius, 22, '#f2524799');
+      c.font = '900 15px Arial';
+      c.textAlign = 'center';
+      c.lineWidth = 4;
+      c.strokeStyle = '#28162a';
+      const warning = effect.attackKind === 'meteor' ? 'METEOR · MOVE' : 'SHOCKWAVE · JUMP';
+      c.strokeText(warning, 0, -36);
+      c.fillStyle = '#fff4bf';
+      c.fillText(warning, 0, -36);
       c.strokeStyle = '#ffcf86';
       c.lineWidth = 2;
       c.stroke();
@@ -1596,13 +1739,24 @@ export class Renderer {
     c.save();
     c.globalAlpha = clamp((number.life ?? 1) * 2, 0, 1);
     c.textAlign = 'center';
-    c.font = `900 ${text.length > 8 ? 15 : 21}px system-ui`;
+    const numeric = /^\d/.test(text),
+      gold = /g$/.test(text),
+      healing = /HP|HEAL/.test(text);
+    const size = numeric ? 28 : text.length > 12 ? 17 : 23;
+    c.font = `900 ${size}px Arial, sans-serif`;
     c.lineJoin = 'round';
-    c.lineWidth = 4;
-    c.strokeStyle = pal[1];
-    c.strokeText(text, number.x, number.y);
-    c.fillStyle = /^[-+]?\d/.test(text) ? pal[0] : number.color || pal[0];
-    c.fillText(text, number.x, number.y);
+    c.lineWidth = 6;
+    c.strokeStyle = '#251529';
+    const y = number.y - Math.max(0, 1 - (number.life ?? 1)) * 26;
+    c.strokeText(text, number.x, y);
+    const fill = c.createLinearGradient(0, y - size, 0, y);
+    fill.addColorStop(0, healing ? '#edfff0' : gold ? '#fffbd4' : numeric ? pal[0] : '#ffffff');
+    fill.addColorStop(
+      1,
+      healing ? '#52ff9b' : gold ? '#ffc228' : numeric ? '#ff9b35' : number.color || pal[0],
+    );
+    c.fillStyle = fill;
+    c.fillText(text, number.x, y);
     c.restore();
   }
   crystal(c, x, y, size, alpha) {

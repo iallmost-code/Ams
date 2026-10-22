@@ -2,6 +2,8 @@
 
 An original mobile-first Canvas action RPG built from the supplied platform/rope combat prototypes. Explore illustrated fantasy hunting grounds, fight manually or with AUTO, change class, collect equipment and save progress on your device. No backend, database or account is needed.
 
+![AetherStory mobile gameplay with original sprite artwork](docs/mobile-preview.png)
+
 ## Run locally
 
 Use Node.js 22.12+ (development environment: Node 24).
@@ -23,17 +25,25 @@ The production build is the `dist/` directory. Deploy its contents to an HTTPS s
 
 ### GitHub Pages
 
-The prepared `gh-pages` branch contains the built game, `.nojekyll`, all assets and a portable `AetherStory.html`. In repository **Settings → Pages**, choose **Deploy from a branch**, **gh-pages**, **/ (root)** and save. Publishing this branch does not require merging the source PR. The expected site address is `https://iallmost-code.github.io/Ams/`; wait for GitHub's Pages deployment before using it. Publish the production build rather than the Vite source directory. The connected integration could push the branch but GitHub denied permission to configure Pages, so that settings selection must be made by the repository owner.
+Production is published only by [.github/workflows/pages.yml](.github/workflows/pages.yml) after a **push to main** passes unit tests, the production build and browser tests. Pull requests validate through CI and never deploy. Do not push production files to a publishing branch.
+
+Repository setup: **Settings → Pages → Source → GitHub Actions**. If the repository is still configured to deploy from its old branch, the owner must select GitHub Actions before the new main workflow can deploy. GitHub currently reports the old publishing-branch source and an environment policy restricted to that branch. The integration cannot change these admin settings (HTTP 403). Also set **Settings → Environments → github-pages → Deployment branches and tags** to allow only **main**, removing the old branch rule. No deployment is attempted by this PR. The workflow uploads `dist/` and uses the `github-pages` environment. Its trigger and deployment guards both require `main`.
 
 For a portable **single HTML file**, run `npm run build:html`. This produces `artifacts/AetherStory.html` with the JavaScript, styles, icons and original Canvas art embedded. It needs no asset folder or network connection. Open the downloaded HTML in a browser that permits local HTML scripts; phone file previewers may display a preview without running the game. This export does not register a service worker; saves remain browser-dependent. A ready-made copy is included as `AetherStory.html` in the repository.
 
 ## Play
 
-Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓**. Press **Space** to jump; **Down + Space** drops through a floating platform. Press **J** to attack or hold the attack button. Skills use **Z/K**, **X**, **C**, **V**. **E** interacts with Elder Rowan or nearby portals and collects nearby loot. Touch controls allow movement, climbing and attacks with separate fingers.
+Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓**. Press **Space** to jump; **Down + Space** drops through a floating platform. Press **J** to attack or hold the attack button. Skills use **Z/K**, **X**, **C**, **V**. **E** interacts with Elder Rowan or nearby portals and collects nearby loot. On mobile, drag the analog joystick to move or climb and use the other hand for jump, attacks and skills. The stick supports slower walking, diagonal climbing input, pointer cancellation and independent fingers.
 
-**T/B** toggles AUTO. Manual movement immediately takes priority. **I** opens inventory, **P** character, **M** world map, **G** forge, **U** skills, **O** settings and **Escape** pause/close. **Enter** begins the adventure.
+**T/B** toggles AUTO within your selected hunting area. Unlocking a harder area does not automatically send you there. Use the world map or a portal when prepared. Manual movement immediately takes priority. **I** opens inventory, **P** character, **M** world map, **G** forge, **U** skills, **O** settings and **Escape** pause/close. **Enter** begins the adventure.
 
-The four classes are Vanguard, Arcanist, Nightblade and Ranger. First and second skills are available immediately; advanced skills unlock at levels 10 and 25. Hunt monsters for XP, collect gold and equipment, equip six gear slots, spend skill points and enhance equipment in the timing-based forge. Defeated monsters respawn; a fallen hero returns safely after a short delay. Later hunting grounds unlock at levels 3, 6 and 10.
+**Pip, your dragon companion**, automatically flies to gold and equipment within 360 world units in both manual and AUTO play. When your HP falls below 70%, Pip restores 11% of your maximum HP, with a 35-second cooldown and no potion cost. Your HUD shows HP, pet activity and healing readiness; the companion cannot revive a defeated hero.
+
+The four classes are Vanguard, Arcanist, Nightblade and Ranger. First and second skills are available immediately; advanced skills unlock at levels 10 and 25. Hunt monsters for XP, collect gold and equipment, equip six gear slots, spend skill points and enhance equipment in the timing-based forge. Defeated monsters respawn; a fallen hero returns safely after a short delay. Later hunting grounds unlock at levels 10, 16 and 20.
+
+Visit **Shop** for 90-gold tonics (45% HP, 10-second cooldown), vitality training (+25 max HP/rank), and weapon mastery (+4 attack/rank). Training costs 250 × (next rank)²; each path has ten ranks. Forge costs rise exponentially with stars, and failed attempts still cost gold and cores. Armor reduces incoming damage but cannot make the hero immune.
+
+Fresh starter AUTO reaches level 10 in about 28 minutes. A reproducible policy that equips loot, salvages spare gear, buys training/tonics and forges gear reaches level 25 in about 3 hours 49 minutes. The boss uses a 150,000 HP fight with **SHOCKWAVE · JUMP** and **METEOR · MOVE** warnings; AUTO is not a substitute for dodging. See the measured scenarios and gear assumptions in [QA](docs/QA.md). Existing saves retain their level; new fields default safely and area access follows the new level gates.
 
 ## Save and install
 
@@ -54,6 +64,8 @@ The test runner starts a production preview on port 4173. It uses `/usr/bin/chro
 
 Behavior tests cover physics, combat, deaths/respawn, navigation, local saves, touch input and the fixed simulation clock. Browser tests exercise real controls, AUTO, panels, reload persistence, common mobile/desktop viewports and a fully offline production reload. See [QA record](docs/QA.md) for commands, actual results and device-testing limits.
 
+Run `npm run balance` to reproduce the complete balance report (including a four-hour progression policy and boss scenarios); unit tests include a one-hour AUTO regression. The simulation runs real `updateGame` fixed steps without time or stat multipliers.
+
 ## Project structure
 
 - `src/game/`: deterministic world, physics, combat, navigation and RPG rules.
@@ -66,4 +78,4 @@ Behavior tests cover physics, combat, deaths/respawn, navigation, local saves, t
 
 The browser exposes read-only diagnostics through `window.aetherStory.getSnapshot()` and `window.aetherStory.getDiagnostics()` for bug reports. No debug mutation or backend is required.
 
-All visuals and sound synthesis are original to this project. Commercial-game location/boss names and remote libraries from the larger reference snippet are replaced. The larger supplied snippet ended during its combat implementation; this repository contains a new modular implementation rather than claiming to repair code that was not supplied.
+The illustrated mushroom valley and four-class/creature animation atlases are original AI-generated artwork created for this project and bundled locally as WebP assets. Terrain and effects use local Canvas artwork; sound is synthesized locally. Commercial-game location/boss names and remote libraries from the larger reference snippet are replaced. The larger supplied snippet ended during its combat implementation; this repository contains a new modular implementation rather than claiming to repair code that was not supplied.

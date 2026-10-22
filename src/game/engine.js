@@ -1,4 +1,17 @@
 import {
+  xpThreshold,
+  enemyXp,
+  enemyGold,
+  forgeCost,
+  upgradeCost,
+  upgradeLimit,
+  PIP_HEAL_FRACTION,
+  PIP_HEAL_COOLDOWN,
+  POTION_PRICE,
+  POTION_COOLDOWN,
+} from './balance.js';
+export { forgeCost, upgradeCost, POTION_PRICE } from './balance.js';
+import {
   createWorld,
   createEnemies,
   GRAVITY,
@@ -87,9 +100,6 @@ function definitions(id) {
     description: `${name} deals ${[185, 270, 380, 550][i]}% attack damage${i > 1 ? ' in an aether burst' : '.'}`,
   }));
 }
-function xpThreshold(level) {
-  return Math.round(55 + level * 30 + level * level * 4);
-}
 function recalculate(s, heal = false) {
   const p = s.player,
     c = CLASS_DEFS.find((c) => c.id === s.classId),
@@ -102,9 +112,9 @@ function recalculate(s, heal = false) {
     attack += (item.attack || 0) * (1 + (item.stars || 0) * 0.12);
     defense += (item.defense || 0) * (1 + (item.stars || 0) * 0.12);
   }
-  p.attack = Math.round(attack);
+  p.attack = Math.round(attack + (s.upgrades?.mastery || 0) * 4);
   p.defense = Math.round(defense);
-  p.maxHp = c.hp + (p.level - 1) * 28;
+  p.maxHp = c.hp + (p.level - 1) * 28 + (s.upgrades?.vitality || 0) * 25;
   p.maxMp = c.mp + (p.level - 1) * 7;
   p.attackRange = c.range;
   p.hp = heal ? p.maxHp : clamp(p.hp + (p.maxHp - oldHp), 0, p.maxHp);
@@ -235,6 +245,7 @@ export function createGame(progress = null) {
             count: 3,
           },
         ],
+    potionCooldown: 0,
     attackTimer: 0,
     attackAnimation: 0,
     skillTimer: 0,
@@ -252,11 +263,25 @@ export function createGame(progress = null) {
   };
   const s = {
     saveVersion: 4,
+    deaths: Math.max(0, Math.floor(finite(saved.player?.deaths))),
+    upgrades: {
+      vitality: clamp(Math.floor(finite(saved.upgrades?.vitality)), 0, 10),
+      mastery: clamp(Math.floor(finite(saved.upgrades?.mastery)), 0, 10),
+    },
     absence: saved.absence || null,
     offlineSummary: null,
     world,
     areas: world.areas,
     player,
+    pet: {
+      name: 'Pip',
+      x: 120,
+      y: 760,
+      healCooldown: 0,
+      healFlash: 0,
+      targetId: null,
+      mode: 'following',
+    },
     enemies: createEnemies(world),
     drops: [],
     particles: [],
@@ -279,6 +304,7 @@ export function createGame(progress = null) {
     settings: {
       sound: true,
       particles: true,
+      minimapCollapsed: true,
       reducedMotion: false,
       ...saved.settings,
     },
@@ -337,11 +363,47 @@ export function equipItem(s, id) {
 export function usePotion(s) {
   const p = s.player,
     item = p.inventory.find((i) => i.type === 'potion' && i.count > 0);
-  if (!item || p.hp <= 0 || p.hp >= p.maxHp) return false;
-  p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.6));
+  if (!item || p.hp <= 0 || p.hp >= p.maxHp || p.potionCooldown > 0) return false;
+  p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.45));
+  p.potionCooldown = POTION_COOLDOWN;
   item.count--;
   if (!item.count) p.inventory.splice(p.inventory.indexOf(item), 1);
   floating(s, center(p), p.y, 'HEAL', '#9cf1be');
+  return true;
+}
+export function buyPotion(s, quantity = 1) {
+  if (
+    !Number.isInteger(quantity) ||
+    quantity < 1 ||
+    quantity > 100 ||
+    s.player.gold < POTION_PRICE * quantity
+  )
+    return false;
+  let item = s.player.inventory.find((i) => i.id === 'health-potion' && i.type === 'potion');
+  if (item && item.count + quantity > 9999) return false;
+  s.player.gold -= POTION_PRICE * quantity;
+  if (item) item.count += quantity;
+  else
+    s.player.inventory.push({
+      id: 'health-potion',
+      name: 'Crimson Tonic',
+      type: 'potion',
+      rarity: 'normal',
+      icon: '♥',
+      count: quantity,
+    });
+  notice(s, `Bought ${quantity} Crimson Tonic${quantity > 1 ? 's' : ''}`);
+  return true;
+}
+export function buyUpgrade(s, type) {
+  if (!['vitality', 'mastery'].includes(type)) return false;
+  const rank = s.upgrades[type],
+    cost = upgradeCost(rank);
+  if (rank >= upgradeLimit || s.player.gold < cost) return false;
+  s.player.gold -= cost;
+  s.upgrades[type]++;
+  recalculate(s);
+  notice(s, `${type === 'vitality' ? 'Vitality' : 'Weapon mastery'} training improved`);
   return true;
 }
 export function claimQuest(s) {
@@ -403,8 +465,7 @@ export function forgeItem(s, slot, timing) {
   if (!item) return { success: false, message: 'Equip an item first' };
   const stars = item.stars || 0;
   if (stars >= 25) return { success: false, message: 'Maximum star level reached' };
-  const cost = 100 + stars * 70,
-    cores = 1 + Math.floor(stars / 5);
+  const { gold: cost, cores } = forgeCost(stars);
   if (s.player.gold < cost || s.starCores < cores)
     return {
       success: false,
@@ -462,7 +523,8 @@ export function serializeGame(s, settings = s.settings) {
     version: 4,
     saveVersion: 4,
     absence: s.absence || null,
-    player: { level: s.player.level, xp: s.player.xp, gold: s.player.gold },
+    player: { level: s.player.level, xp: s.player.xp, gold: s.player.gold, deaths: s.deaths },
+    upgrades: s.upgrades,
     inventory: s.player.inventory,
     equipment: s.player.equipment,
     settings,
@@ -512,7 +574,7 @@ function reward(s, e) {
   s.kills++;
   s.quest.kills++;
   s.quest.completed = s.quest.kills >= s.quest.target;
-  s.player.xp += e.isBoss ? 650 : 28 + e.level * 9;
+  s.player.xp += enemyXp(e);
   advance(s);
   s.drops.push({
     id: `drop-${s.nextId++}`,
@@ -521,7 +583,7 @@ function reward(s, e) {
     w: 18,
     h: 18,
     type: 'gold',
-    amount: e.isBoss ? 260 : 18 + e.level * 5,
+    amount: enemyGold(e),
     item: null,
     age: 0,
     platformId: e.platformId,
@@ -536,7 +598,9 @@ function reward(s, e) {
       icon: slot === 'weapon' ? '⚔' : '✧',
       count: 1,
       stars: 0,
-      ...(slot === 'weapon' ? { attack: 13 + e.level * 3 } : { defense: 4 + e.level }),
+      ...(slot === 'weapon'
+        ? { attack: 13 + e.level * 3 }
+        : { defense: 4 + Math.ceil(e.level * 1.5) }),
     };
     s.drops.push({
       id: `drop-${s.nextId++}`,
@@ -632,11 +696,17 @@ function combat(s, input) {
 function damagePlayer(s, amount, sourceX = center(s.player) + 1) {
   const p = s.player;
   if (p.hp <= 0 || p.invuln > 0) return;
-  p.hp = Math.max(0, p.hp - Math.max(1, Math.round(amount - p.defense * 0.55)));
+  p.hp = Math.max(0, p.hp - Math.max(1, Math.round((amount * 100) / (100 + p.defense * 1.4))));
   p.invuln = 0.7;
   p.knockbackVx = (center(p) < sourceX ? -1 : 1) * 260;
   p.knockbackTimer = 0.2;
-  floating(s, center(p), p.y, '−' + Math.max(1, Math.round(amount - p.defense * 0.55)), '#ff8a91');
+  floating(
+    s,
+    center(p),
+    p.y,
+    '−' + Math.max(1, Math.round((amount * 100) / (100 + p.defense * 1.4))),
+    '#ff8a91',
+  );
   effect(s, 'hurt', center(p), p.y + 20);
 }
 function tickEnemies(s, dt) {
@@ -669,33 +739,48 @@ function tickEnemies(s, dt) {
         e.attackPhase = 'warning';
         if (e.telegraph === 0) {
           e.attackPhase = 'strike';
-          effect(s, 'boss-slam', center(e), platform.y, {
-            life: 0.55,
-            maxLife: 0.55,
-            radius: 210,
+          const meteor = e.attackKind === 'meteor';
+          effect(s, meteor ? 'boss-meteor' : 'boss-slam', e.warningX, platform.y, {
+            life: 0.6,
+            maxLife: 0.6,
+            radius: e.warningRadius,
           });
-          if (Math.abs(center(p) - center(e)) < 210 && Math.abs(p.y + p.h - platform.y) < 95)
-            damagePlayer(s, 65 + e.level * 3, center(e));
-          e.bossCooldown = 3.1;
+          const inRange = Math.abs(center(p) - e.warningX) < e.warningRadius;
+          const inHeight = meteor || Math.abs(p.y + p.h - platform.y) < 75;
+          if (inRange && inHeight) damagePlayer(s, meteor ? 470 : 360, e.warningX);
+          e.bossCooldown = 4.2;
         }
-      } else if (e.bossCooldown <= 0 && Math.abs(center(p) - center(e)) < 430 && p.hp > 0) {
-        e.telegraph = 1.05;
+      } else if (e.bossCooldown <= 0 && Math.abs(center(p) - center(e)) < 650 && p.hp > 0) {
+        e.attackCount = (e.attackCount || 0) + 1;
+        e.attackKind = e.attackCount % 2 === 0 ? 'meteor' : 'slam';
+        e.warningX = e.attackKind === 'meteor' ? center(p) : center(e);
+        e.warningRadius = e.attackKind === 'meteor' ? 100 : 245;
+        e.telegraph = e.attackKind === 'meteor' ? 1.5 : 1.25;
         e.attackPhase = 'warning';
-        effect(s, 'telegraph', center(e), platform.y, {
-          life: 1.05,
-          maxLife: 1.05,
-          radius: 210,
-          w: 420,
+        effect(s, 'telegraph', e.warningX, platform.y, {
+          life: e.telegraph,
+          maxLife: e.telegraph,
+          radius: e.warningRadius,
+          w: e.warningRadius * 2,
           h: 30,
+          attackKind: e.attackKind,
         });
       } else {
         e.attackPhase = 'idle';
-        if (Math.abs(center(p) - center(e)) < 470) {
+        if (Math.abs(center(p) - center(e)) < 570) {
           e.facing = center(p) < center(e) ? -1 : 1;
-          e.x += e.facing * 28 * dt;
+          e.x += e.facing * 32 * dt;
         }
       }
     } else {
+      if (
+        e.level >= 3 &&
+        p.hp > 0 &&
+        p.platformId === e.platformId &&
+        Math.abs(center(e) - center(p)) < 430
+      ) {
+        e.vx = Math.sign(center(p) - center(e)) * (38 + e.level * 3);
+      }
       e.x += e.vx * dt;
       if (e.x <= min) {
         e.x = min;
@@ -712,7 +797,7 @@ function tickEnemies(s, dt) {
         Math.abs(center(e) - center(p)) < (e.w + p.w) / 2 + 12 &&
         Math.abs(e.y + e.h - (p.y + p.h)) < 50
       ) {
-        damagePlayer(s, 12 + e.level * 3, center(e));
+        damagePlayer(s, e.damage ?? 12 + e.level * 3, center(e));
         e.attackTimer = 1.1;
       }
     }
@@ -791,10 +876,13 @@ function physics(s, input, jump, dt) {
       return;
     }
   }
-  const direction = Number(!!input.right) - Number(!!input.left);
+  const direction =
+    Number.isFinite(input.moveX) && Math.abs(input.moveX) > 0.16
+      ? clamp(input.moveX, -1, 1)
+      : Number(!!input.right) - Number(!!input.left);
   p.vx = direction * MOVE_SPEED + (p.knockbackTimer > 0 ? p.knockbackVx : 0);
   p.knockbackTimer = Math.max(0, p.knockbackTimer - dt);
-  if (direction) p.facing = direction;
+  if (direction) p.facing = Math.sign(direction);
   if (jump && p.grounded) {
     const surface = s.world.platforms.find((t) => t.id === p.platformId);
     const ground = s.world.platforms.find((t) => t.ground || t.id === 'ground');
@@ -869,7 +957,7 @@ function autoInput(s, dt) {
     input = {};
   if (p.hp < p.maxHp * 0.4) usePotion(s);
   const accessible = (e) =>
-    s.unlockedAreas.includes(s.world.areas.find((a) => e.x >= a.x && e.x < a.end)?.id);
+    s.world.areas.find((a) => e.x >= a.x && e.x < a.end)?.id === s.currentArea;
   // A toggle discards the old route, but the stored rope remains real world context.
   // Reconstruct its ascent edge so AUTO can finish the climb and plan from an endpoint.
   if (p.climbing && (nav.edge?.type !== 'rope' || nav.edge.ropeId !== p.climbing)) {
@@ -981,6 +1069,41 @@ function autoInput(s, dt) {
   }
   return finishAutoInput(s, input, dt);
 }
+/** Pip works in both manual and AUTO modes. Flight never changes player physics. */
+function tickPet(s, dt) {
+  const p = s.player,
+    pet = s.pet;
+  pet.healCooldown = Math.max(0, pet.healCooldown - dt);
+  pet.healFlash = Math.max(0, pet.healFlash - dt);
+  const ownerX = center(p),
+    ownerY = p.y + p.h / 2;
+  if (Math.hypot(pet.x - ownerX, pet.y - ownerY) > 650) {
+    pet.x = ownerX - 60;
+    pet.y = ownerY - 20;
+  }
+  const nearby = s.drops.filter((d) => Math.hypot(d.x - ownerX, d.y - ownerY) < 360);
+  let target = nearby.find((d) => d.id === pet.targetId);
+  if (!target)
+    target = nearby.sort(
+      (a, b) => Math.hypot(a.x - pet.x, a.y - pet.y) - Math.hypot(b.x - pet.x, b.y - pet.y),
+    )[0];
+  pet.targetId = target?.id || null;
+  pet.mode = target ? 'looting' : 'following';
+  const tx = target ? target.x : ownerX - p.facing * 62;
+  const ty = target ? target.y : ownerY - 24;
+  const distance = Math.hypot(tx - pet.x, ty - pet.y);
+  const fraction = Math.min(1, (340 * dt) / Math.max(1, distance));
+  pet.x += (tx - pet.x) * fraction;
+  pet.y += (ty - pet.y) * fraction;
+  if (p.hp > 0 && p.hp < p.maxHp * 0.7 && pet.healCooldown === 0) {
+    const amount = Math.min(p.maxHp - p.hp, Math.ceil(p.maxHp * PIP_HEAL_FRACTION));
+    p.hp += amount;
+    pet.healCooldown = PIP_HEAL_COOLDOWN;
+    pet.healFlash = 1.2;
+    floating(s, ownerX, p.y - 12, `+${amount} HP`, '#8effc4');
+    notice(s, `Pip restored ${amount} HP`);
+  }
+}
 function collect(s, input, dt) {
   const p = s.player;
   for (let i = s.drops.length - 1; i >= 0; i--) {
@@ -991,9 +1114,10 @@ function collect(s, input, dt) {
       continue;
     }
     if (
-      (input.interact || s.auto) &&
-      Math.abs(d.x - center(p)) < (input.interact ? 110 : 48) &&
-      Math.abs(d.y - (p.y + p.h / 2)) < 90
+      (s.pet.targetId === d.id && Math.hypot(d.x - s.pet.x, d.y - s.pet.y) < 24) ||
+      ((input.interact || s.auto) &&
+        Math.abs(d.x - center(p)) < (input.interact ? 110 : 48) &&
+        Math.abs(d.y - (p.y + p.h / 2)) < 90)
     ) {
       if (d.type === 'gold') {
         p.gold += d.amount;
@@ -1014,6 +1138,7 @@ function frame(s, raw, dt) {
   s.noticeTimer = Math.max(0, s.noticeTimer - dt);
   advance(s);
   for (const key of [
+    'potionCooldown',
     'attackTimer',
     'attackAnimation',
     'skillTimer',
@@ -1032,6 +1157,7 @@ function frame(s, raw, dt) {
     }
   if (p.hp <= 0) {
     if (p.deadTimer <= 0) {
+      s.deaths++;
       p.deadTimer = 2.5;
       p.climbing = null;
       p.vx = 0;
@@ -1059,6 +1185,7 @@ function frame(s, raw, dt) {
   if (raw.interact && !s.previousInput.interact) interactWorld(s);
   combat(s, input);
   tickEnemies(s, dt);
+  tickPet(s, dt);
   collect(s, input, dt);
   s.previousInput = { ...raw };
 }
