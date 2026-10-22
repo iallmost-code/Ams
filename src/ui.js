@@ -547,6 +547,10 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       '.class-name',
       `${currentClass?.name || title(state.classId || 'vanguard')} · Adventurer`,
     );
+    $('.portrait').style.setProperty(
+      '--portrait-row',
+      `${(Math.max(0, ['vanguard', 'arcanist', 'nightblade', 'ranger'].indexOf(state.classId)) * 100) / 3}%`,
+    );
     setText('.level-badge', p.level);
     setText('.gold', amount(p.gold));
     setText('.cores', amount(state.starCores));

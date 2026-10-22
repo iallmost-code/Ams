@@ -1,4 +1,5 @@
 import './style.css';
+import { artReady, artStatus } from './art.js';
 import {
   createGame,
   updateGame,
@@ -234,6 +235,7 @@ window.aetherStory = Object.freeze({
   getDiagnostics() {
     return {
       version: '1.0.0',
+      art: artStatus(),
       fps,
       saveAvailable,
       lastSaveTime,
@@ -378,7 +380,7 @@ if (import.meta.hot)
   });
 
 // System fonts are local, but wait for font readiness before measuring/drawing text.
-Promise.resolve(document.fonts?.ready)
+Promise.all([document.fonts?.ready, artReady])
   .catch(() => {})
   .then(() => {
     lastFrame = performance.now();

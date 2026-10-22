@@ -1,3 +1,4 @@
+import { valleyArt, heroArt, creatureArt } from './art.js';
 /** Original AetherStory M illustration. All artwork is drawn locally with Canvas. */
 const TAU = Math.PI * 2;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -172,7 +173,11 @@ export class Renderer {
     for (const effect of state.effects || [])
       if (this.visible(effect.x, 250)) this.drawEffect(effect, false);
     for (const enemy of state.enemies || [])
-      if (this.visible(enemy.x, enemy.w || 80) && !(enemy.respawnTimer > 0)) this.drawEnemy(enemy);
+      if (
+        this.visible(enemy.x, enemy.w || 80) &&
+        (!(enemy.respawnTimer > 0) || enemy.deathTimer > 0)
+      )
+        this.drawEnemy(enemy);
     this.drawPlayer(p, state.classId || 'vanguard');
     if (!p.deadTimer && p.hp > 0) this.drawCompanion(p);
     for (const effect of state.effects || [])
@@ -258,6 +263,27 @@ export class Renderer {
     g.addColorStop(1, p.sky[2]);
     c.fillStyle = g;
     c.fillRect(0, 0, this.width, 720);
+    if (
+      valleyArt.image.complete &&
+      valleyArt.image.naturalWidth &&
+      (theme === 'forest' || theme === 'canopy')
+    ) {
+      const image = valleyArt.image;
+      const width = this.width + 340;
+      const height = Math.max(this.height + 100, (width * image.height) / image.width);
+      const drift = (Math.sin(this.camera.x / 1800) * 0.5 + 0.5) * 180;
+      c.save();
+      if (theme === 'canopy') c.filter = 'hue-rotate(25deg) saturate(.85) brightness(.7)';
+      c.drawImage(image, -drift, this.height - height - this.camera.y * 0.04 + 75, width, height);
+      c.restore();
+      if (this.particles)
+        for (let i = 0; i < 18; i++) {
+          const x = (noise(i + 12) * this.width + this.t * 5) % this.width;
+          const y = noise(i + 92) * this.height + Math.sin(this.t + i) * 8;
+          ellipse(c, x, y, 1.4, 1.4, '#ffffc9b0');
+        }
+      return;
+    }
     const sunX = this.width * 0.69 - this.camera.x * 0.025,
       sunY = 115 - this.camera.y * 0.09;
     glow(c, sunX, sunY, 240, theme === 'crystal' ? '#bcfaff50' : '#fff9c96b');
@@ -313,13 +339,15 @@ export class Renderer {
       const x = 240 + i * 650;
       if (!this.visible(x - 120, 400)) continue;
       const base = 820;
-      this.tree(x, base, 340 + noise(i + 5) * 80, noise(i) * 80 + 90, i);
+      if (!['forest', 'canopy'].includes(this.theme(this.state)))
+        this.tree(x, base, 340 + noise(i + 5) * 80, noise(i) * 80 + 90, i);
       if (i % 3 === 2) this.ruin(x + 210, base);
       if (this.theme(this.state) === 'crystal') this.crystal(c, x + 130, base, 70, 1);
     }
     for (const area of world.areas || []) {
       if (area.npc && this.visible(area.npc.x - 100, 240)) {
-        this.cottage(area.npc.x - 30, area.npc.y);
+        if (!['forest', 'canopy'].includes(this.theme(this.state)))
+          this.cottage(area.npc.x - 30, area.npc.y);
         this.drawNPC(area.npc);
       }
       for (const portal of area.portals || []) {
@@ -654,110 +682,67 @@ export class Renderer {
   }
   drawPlatform(platform) {
     const c = this.ctx,
-      p = this.palette,
-      { x, y, w } = platform;
-    const ground = y >= 800 || w > 2000;
-    const h = ground ? 220 : Math.min(72, platform.h + 30 || 55);
+      { x, y, w } = platform,
+      theme = this.theme(this.state);
+    const ground = platform.ground || platform.id === 'ground';
+    const h = ground ? 220 : 48;
+    const earth =
+      theme === 'crystal'
+        ? ['#9589bd', '#4f467c']
+        : theme === 'ember'
+          ? ['#a06e61', '#513b46']
+          : ['#cf9b68', '#815039'];
     c.save();
     c.translate(x, y);
-    const stone = c.createLinearGradient(0, 0, 0, h);
-    stone.addColorStop(0, p.rock);
-    stone.addColorStop(1, p.shadow);
-    if (ground) {
-      c.fillStyle = stone;
-      c.fillRect(0, 4, w, h);
-      path(c, `M 0 8 L ${w} 8 L ${w} 35 Q ${w * 0.6} 23 0 37 Z`, '#5b6b4f');
-      const left = Math.max(0, Math.floor((this.camera.x - x - 80) / 70)),
-        right = Math.min(Math.ceil(w / 70), Math.ceil((this.camera.x + this.width - x + 80) / 70));
-      for (let i = left; i < right; i++) {
-        const sx = i * 70 + noise(i) * 22,
-          sy = 46 + noise(i + 3) * 126;
-        c.globalAlpha = 0.14;
-        path(c, `M ${sx} ${sy} l 12 -3 l 9 6 l -6 7 l -14 -2 Z`, '#e0d2aa');
-        line(
-          c,
-          [
-            [sx + 23, sy - 17],
-            [sx + 38, sy - 19],
-            [sx + 49, sy - 15],
-          ],
-          '#273e37',
-          2,
-        );
-        c.globalAlpha = 1;
-        if (i % 3 === 0)
-          path(
-            c,
-            `M ${sx} 18 Q ${sx - 12} 40 ${sx + 4} 60 Q ${sx + 10} 71 ${sx - 3} 83`,
-            null,
-            '#536248',
-            2,
-          );
-      }
-    } else {
-      path(
-        c,
-        `M 2 4 L ${w - 2} 4 L ${w - 8} 26 L ${w * 0.82} 34 L ${w * 0.74} ${h - 8} L ${w * 0.58} ${h - 15} L ${w * 0.43} ${h + 4} L ${w * 0.25} ${h - 13} L 16 34 Z`,
-        stone,
-        p.shadow,
-        2,
-      );
-      path(
-        c,
-        `M 19 20 L ${w * 0.25} 30 L ${w * 0.36} ${h - 5} L ${w * 0.22} ${h - 16} Z`,
-        '#c3b69044',
-      );
-      path(
-        c,
-        `M ${w * 0.66} 17 L ${w * 0.57} 34 L ${w * 0.62} ${h - 12} L ${w * 0.77} 30 Z`,
-        '#344b4844',
-      );
-      for (let i = 0; i < Math.floor(w / 60); i++) {
-        const rx = 35 + i * 60;
-        path(
-          c,
-          `M ${rx} 21 Q ${rx - 8} 53 ${rx + 9} ${h + 20} Q ${rx + 13} ${h + 31} ${rx - 1} ${h + 40}`,
-          null,
-          '#615f40',
-          3,
-        );
-        line(
-          c,
-          [
-            [rx + 4, h + 11],
-            [rx + 15, h + 18],
-          ],
-          '#61734b',
-          2,
-        );
-      }
-    }
-    const grass = c.createLinearGradient(0, -8, 0, 19);
-    grass.addColorStop(0, '#c0d87c');
-    grass.addColorStop(0.25, p.grass);
-    grass.addColorStop(1, p.leaf[1]);
+    const soil = c.createLinearGradient(0, 8, 0, h);
+    soil.addColorStop(0, earth[0]);
+    soil.addColorStop(1, earth[1]);
     path(
       c,
-      `M 0 1 Q 6 -8 18 -5 L ${w - 18} -5 Q ${w - 5} -8 ${w} 2 L ${w - 3} 13 Q ${w - 13} 20 ${w - 24} 12 L 22 12 Q 9 23 2 11 Z`,
-      grass,
-      p.leaf[0],
+      ground
+        ? `M 0 0 H ${w} V ${h} H 0 Z`
+        : `M 0 0 H ${w} L ${w - 5} 24 Q ${w - 12} 39 ${w - 28} 39 L ${w * 0.7} 46 L ${w * 0.44} 43 L 28 46 Q 8 40 3 23 Z`,
+      soil,
+      '#6a432d',
+      2,
+    );
+    const start = Math.max(0, Math.floor((this.camera.x - x - 30) / 14) * 14),
+      end = Math.min(w, this.camera.x + this.width - x + 30);
+    c.save();
+    for (let xx = start; xx < end; xx += 14) {
+      const seed = noise(xx + x);
+      const depth = ground ? 180 : 26;
+      c.fillStyle = seed > 0.5 ? '#f3c88e55' : '#57382755';
+      c.fillRect(xx, 20 + noise(xx + 29) * depth, 3 + seed * 6, 2 + seed * 3);
+      if (!ground && seed > 0.78) {
+        path(c, `M ${xx} 37 q -4 16 4 24 q 8 10 -2 19`, null, '#4d7c38', 2);
+        ellipse(c, xx + 4, 58, 5, 2, '#83b653', 0.6);
+      }
+    }
+    c.restore();
+    const turf =
+      theme === 'crystal'
+        ? ['#b7c6ff', '#637bb0']
+        : theme === 'ember'
+          ? ['#ebbd69', '#b37543']
+          : ['#c4ee65', '#58a334'];
+    path(
+      c,
+      `M 0 0 Q 3 -8 12 -7 H ${w - 12} Q ${w - 2} -8 ${w} 0 L ${w - 2} 10 Q ${w - 8} 20 ${w - 17} 10 H 18 Q 8 24 2 11 Z`,
+      turf[1],
+      '#47712d',
       1.5,
     );
-    const start = Math.max(0, Math.floor((this.camera.x - x - 30) / 18) * 18),
-      end = Math.min(w, this.camera.x + this.width - x + 30);
-    for (let gx = start; gx < end; gx += 18) {
-      const s = noise(gx + x);
-      const breeze = this.motion ? Math.sin(this.t * 2 + gx * 0.04 + x) * 2.5 : 0;
+    path(c, `M 3 -1 Q 8 -8 17 -6 H ${w - 14} Q ${w - 3} -7 ${w - 2} 0 L ${w - 7} 5 H 8 Z`, turf[0]);
+    for (let xx = start; xx < end; xx += 13) {
+      const seed = noise(xx + x),
+        sway = this.motion ? Math.sin(this.t * 2 + xx * 0.05) * 2 : 0;
       path(
         c,
-        `M ${gx} 0 q ${-4 + breeze} ${-8 - s * 5} ${2 + breeze} ${-6 - s * 4} l 4 5 q ${breeze} -14 5 -8 l 1 8 l 6 -4 l -3 7`,
-        p.grass,
+        `M ${xx} 1 q ${-3 + sway} -10 0 -8 l 4 6 l ${2 + sway} -12 l 3 10 l 4 -5 l -2 8`,
+        seed > 0.5 ? turf[0] : '#8fce47',
       );
-      if (s > 0.87) this.flower(gx, -2, gx + x);
-    }
-    if (!ground && w > 140) {
-      ellipse(c, w * 0.8, 2, 17, 6, p.leaf[1]);
-      ellipse(c, w * 0.8, -2, 12, 6, '#8da76b');
+      if (seed > 0.92) this.flower(xx, -5, xx + x);
     }
     c.restore();
   }
@@ -815,6 +800,58 @@ export class Renderer {
     c.restore();
   }
   drawPlayer(player, classId) {
+    if (heroArt.image.complete && heroArt.image.naturalWidth) {
+      const c = this.ctx,
+        image = heroArt.image;
+      const row = Math.max(0, ['vanguard', 'arcanist', 'nightblade', 'ranger'].indexOf(classId));
+      const moving = Math.abs(player.vx) > 8 || player.climbing;
+      const attacking = player.attackAnimation > 0 || player.skillAnimation > 0;
+      const col = attacking ? 3 : moving ? (Math.floor(this.t * 9) % 2) + 1 : 0;
+      const cellW = image.width / 4,
+        cellH = image.height / 4;
+      const size = 105,
+        x = player.x + player.w / 2,
+        feet = player.y + player.h;
+      ellipse(c, x, feet + 2, 25, 5, '#4a382e35');
+      c.save();
+      c.translate(x, feet);
+      c.scale(player.facing < 0 ? -1 : 1, 1);
+      if (player.hp <= 0 || player.deadTimer > 0) {
+        c.translate(0, -20);
+        c.rotate(-1.4);
+        c.globalAlpha = 0.6;
+      } else if (player.invuln > 0) c.globalAlpha = 0.65 + Math.sin(this.t * 36) * 0.25;
+      const bob = !moving && this.motion ? Math.sin(this.t * 2) * 0.6 : 0;
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = 'high';
+      c.drawImage(
+        image,
+        col * cellW,
+        row * cellH,
+        cellW,
+        cellH,
+        -size * 0.5,
+        -size - bob,
+        size,
+        size,
+      );
+      if (attacking && player.hp > 0) {
+        c.globalCompositeOperation = 'screen';
+        path(c, 'M 12 -89 Q 110 -48 25 -3 Q 86 -47 12 -89', '#fff8b8b0');
+        path(c, 'M 18 -83 Q 98 -45 30 -9', null, '#ffffff', 2);
+      }
+      c.restore();
+      c.save();
+      c.font = 'bold 11px Inter, sans-serif';
+      c.textAlign = 'center';
+      c.fillStyle = '#ffffff';
+      c.strokeStyle = '#624827';
+      c.lineWidth = 3;
+      c.strokeText('Aether', x, feet + 17);
+      c.fillText('Aether', x, feet + 17);
+      c.restore();
+      return;
+    }
     const c = this.ctx,
       w = player.w || 34,
       h = player.h || 56,
@@ -1221,7 +1258,7 @@ export class Renderer {
     // Player HP remains visible beside the action, even on a small phone.
     c.save();
     const hx = player.x + player.w / 2,
-      hy = player.y - 35;
+      hy = player.y + player.h - 112;
     c.fillStyle = '#173443cc';
     c.beginPath();
     c.roundRect(hx - 29, hy, 58, 7, 4);
@@ -1233,6 +1270,41 @@ export class Renderer {
     c.restore();
   }
   drawEnemy(enemy) {
+    if (
+      !enemy.isBoss &&
+      !['boss', 'guardian'].includes(enemy.type) &&
+      creatureArt.image.complete &&
+      creatureArt.image.naturalWidth
+    ) {
+      if (enemy.hp <= 0 && !enemy.deathTimer) return;
+      const c = this.ctx,
+        image = creatureArt.image;
+      const row = { slime: 0, mushroom: 1, wisp: 2, boar: 3 }[enemy.type] || 0;
+      const hurt = enemy.hitTimer > 0 || enemy.hp <= 0;
+      const col = hurt ? 3 : Math.floor(this.t * 5 + enemy.x * 0.01) % 3;
+      const sw = image.width / 4,
+        sh = image.height / 4,
+        size = Math.max(enemy.w + 16, enemy.h * 1.5);
+      const x = enemy.x + enemy.w / 2,
+        feet = enemy.y + enemy.h;
+      ellipse(c, x, feet + 2, size * 0.32, 4, '#59432d30');
+      c.save();
+      c.translate(x, feet);
+      c.scale(enemy.facing < 0 ? -1 : 1, 1);
+      if (enemy.hp <= 0) c.globalAlpha = Math.max(0, enemy.deathTimer / 0.5);
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = 'high';
+      const bob = this.motion && !hurt ? Math.sin(this.t * 5 + enemy.x) * 1.2 : 0;
+      c.drawImage(image, col * sw, row * sh, sw, sh, -size / 2, -size - bob, size, size);
+      c.restore();
+      if (enemy.hp > 0 && enemy.hp < enemy.maxHp) {
+        c.fillStyle = '#5c382bdd';
+        c.fillRect(x - 23, feet - size - 7, 46, 5);
+        c.fillStyle = '#fa8270';
+        c.fillRect(x - 22, feet - size - 6, 44 * clamp(enemy.hp / enemy.maxHp, 0, 1), 3);
+      }
+      return;
+    }
     const c = this.ctx,
       w = enemy.w || 48,
       h = enemy.h || 38;

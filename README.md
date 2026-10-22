@@ -2,6 +2,8 @@
 
 An original mobile-first Canvas action RPG built from the supplied platform/rope combat prototypes. Explore illustrated fantasy hunting grounds, fight manually or with AUTO, change class, collect equipment and save progress on your device. No backend, database or account is needed.
 
+![AetherStory mobile gameplay with original sprite artwork](docs/mobile-preview.png)
+
 ## Run locally
 
 Use Node.js 22.12+ (development environment: Node 24).
@@ -68,4 +70,4 @@ Behavior tests cover physics, combat, deaths/respawn, navigation, local saves, t
 
 The browser exposes read-only diagnostics through `window.aetherStory.getSnapshot()` and `window.aetherStory.getDiagnostics()` for bug reports. No debug mutation or backend is required.
 
-All visuals and sound synthesis are original to this project. Commercial-game location/boss names and remote libraries from the larger reference snippet are replaced. The larger supplied snippet ended during its combat implementation; this repository contains a new modular implementation rather than claiming to repair code that was not supplied.
+The illustrated mushroom valley and four-class/creature animation atlases are original AI-generated artwork created for this project and bundled locally as WebP assets. Terrain, effects and the dragon companion use local Canvas artwork; sound is synthesized locally. Commercial-game location/boss names and remote libraries from the larger reference snippet are replaced. The larger supplied snippet ended during its combat implementation; this repository contains a new modular implementation rather than claiming to repair code that was not supplied.
