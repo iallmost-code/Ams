@@ -1,4 +1,4 @@
-import { valleyArt, heroArt, creatureArt } from './art.js';
+import { valleyArt, heroArt, creatureArt, cavernArt, altarArt, pipArt } from './art.js';
 /** Original AetherStory M illustration. All artwork is drawn locally with Canvas. */
 const TAU = Math.PI * 2;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -263,17 +263,31 @@ export class Renderer {
     g.addColorStop(1, p.sky[2]);
     c.fillStyle = g;
     c.fillRect(0, 0, this.width, 720);
-    if (
-      valleyArt.image.complete &&
-      valleyArt.image.naturalWidth &&
-      (theme === 'forest' || theme === 'canopy')
-    ) {
-      const image = valleyArt.image;
+    const scene = (theme === 'crystal' ? cavernArt : theme === 'ember' ? altarArt : valleyArt)
+      .image;
+    if (scene.complete && scene.naturalWidth) {
+      const key = 'painted:' + theme;
+      if (!this.layers.has(key)) {
+        const plate = document.createElement('canvas');
+        plate.width = scene.width;
+        plate.height = scene.height;
+        const pc = plate.getContext('2d');
+        pc.filter =
+          theme === 'canopy'
+            ? 'hue-rotate(20deg) saturate(.6) brightness(.65) blur(1.2px)'
+            : 'saturate(.65) brightness(.85) blur(1.2px)';
+        pc.drawImage(scene, 0, 0);
+        pc.filter = 'none';
+        pc.fillStyle =
+          theme === 'ember' ? '#341e2633' : theme === 'crystal' ? '#22385135' : '#50696445';
+        pc.fillRect(0, 0, plate.width, plate.height);
+        this.layers.set(key, plate);
+      }
+      const image = this.layers.get(key);
       const width = this.width + 340;
       const height = Math.max(this.height + 100, (width * image.height) / image.width);
       const drift = (Math.sin(this.camera.x / 1800) * 0.5 + 0.5) * 180;
       c.save();
-      if (theme === 'canopy') c.filter = 'hue-rotate(25deg) saturate(.85) brightness(.7)';
       c.drawImage(image, -drift, this.height - height - this.camera.y * 0.04 + 75, width, height);
       c.restore();
       if (this.particles)
@@ -335,19 +349,8 @@ export class Renderer {
   drawWorldScenery(world) {
     const c = this.ctx,
       p = this.palette;
-    for (let i = 0; i < Math.ceil((world.width || 4800) / 650); i++) {
-      const x = 240 + i * 650;
-      if (!this.visible(x - 120, 400)) continue;
-      const base = 820;
-      if (!['forest', 'canopy'].includes(this.theme(this.state)))
-        this.tree(x, base, 340 + noise(i + 5) * 80, noise(i) * 80 + 90, i);
-      if (i % 3 === 2) this.ruin(x + 210, base);
-      if (this.theme(this.state) === 'crystal') this.crystal(c, x + 130, base, 70, 1);
-    }
     for (const area of world.areas || []) {
       if (area.npc && this.visible(area.npc.x - 100, 240)) {
-        if (!['forest', 'canopy'].includes(this.theme(this.state)))
-          this.cottage(area.npc.x - 30, area.npc.y);
         this.drawNPC(area.npc);
       }
       for (const portal of area.portals || []) {
@@ -824,17 +827,7 @@ export class Renderer {
       const bob = !moving && this.motion ? Math.sin(this.t * 2) * 0.6 : 0;
       c.imageSmoothingEnabled = true;
       c.imageSmoothingQuality = 'high';
-      c.drawImage(
-        image,
-        col * cellW,
-        row * cellH,
-        cellW,
-        cellH,
-        -size * 0.5,
-        -size - bob,
-        size,
-        size,
-      );
+      c.drawImage(heroArt.frames[row * 4 + col], -size * 0.5, -size - bob, size, size);
       if (attacking && player.hp > 0) {
         c.globalCompositeOperation = 'screen';
         path(c, 'M 12 -89 Q 110 -48 25 -3 Q 86 -47 12 -89', '#fff8b8b0');
@@ -1216,35 +1209,9 @@ export class Renderer {
     }
     c.save();
     c.translate(x, y);
-    glow(c, 0, 0, 44, pet.healFlash > 0 ? '#69ffc77a' : '#6deaff35');
-    c.scale(player.facing || 1, 1);
-    const flap = Math.sin(this.t * 15) * 7;
-    path(
-      c,
-      `M -9 -2 Q -28 ${-32 + flap} -35 -15 L -28 -10 L -24 -2 L -14 6 Z`,
-      '#79bfff',
-      '#204878',
-      2,
-    );
-    path(c, `M 7 -3 Q 23 ${-30 - flap} 30 -15 L 22 -10 L 19 -1 L 11 7 Z`, '#b2deff', '#204878', 2);
-    path(c, 'M -10 10 Q -38 23 -36 0 Q -31 13 -15 1 Z', '#26a9cd', '#204878', 2);
-    const body = c.createLinearGradient(0, -23, 0, 20);
-    body.addColorStop(0, '#95f5ff');
-    body.addColorStop(0.5, '#36c5e5');
-    body.addColorStop(1, '#1688be');
-    ellipse(c, 0, 4, 16, 18, body);
-    path(c, 'M -9 8 Q 0 -1 10 8 L 9 19 Q 0 25 -9 18 Z', '#fff0bb');
-    ellipse(c, 2, -12, 20, 17, body);
-    path(c, 'M -12 -23 L -16 -38 L -3 -26 M 9 -26 L 17 -37 L 17 -19', '#ffe19b', '#204878', 2);
-    ellipse(c, -5, -13, 3.4, 5.4, '#163f67');
-    ellipse(c, 10, -13, 3.4, 5.4, '#163f67');
-    ellipse(c, -4, -15, 1.4, 2, '#ffffff');
-    ellipse(c, 11, -15, 1.4, 2, '#ffffff');
-    ellipse(c, -12, -7, 4, 2, '#ffaba5');
-    ellipse(c, 16, -7, 4, 2, '#ffaba5');
-    path(c, 'M 0 -5 Q 4 -1 8 -5', null, '#204878', 1.5);
-    ellipse(c, -9, 20, 7, 4, '#289dc5');
-    ellipse(c, 9, 20, 7, 4, '#289dc5');
+    c.scale(player.facing < 0 ? -1 : 1, 1);
+    const frame = pet.healFlash > 0 ? 3 : pet.mode === 'looting' ? 2 : Math.floor(this.t * 7) % 2;
+    if (pipArt.frames[frame]) c.drawImage(pipArt.frames[frame], -38, -42, 76, 76);
     c.restore();
     c.save();
     c.textAlign = 'center';
@@ -1295,7 +1262,7 @@ export class Renderer {
       c.imageSmoothingEnabled = true;
       c.imageSmoothingQuality = 'high';
       const bob = this.motion && !hurt ? Math.sin(this.t * 5 + enemy.x) * 1.2 : 0;
-      c.drawImage(image, col * sw, row * sh, sw, sh, -size / 2, -size - bob, size, size);
+      c.drawImage(creatureArt.frames[row * 4 + col], -size / 2, -size - bob, size, size);
       c.restore();
       if (enemy.hp > 0 && enemy.hp < enemy.maxHp) {
         c.fillStyle = '#5c382bdd';
@@ -1610,12 +1577,28 @@ export class Renderer {
       { vanguard: '#ffda8c', arcanist: '#c9b5ff', ranger: '#c7f0a5', nightblade: '#c4bdff' }[
         effect.classId || this.state.classId
       ] || '#ffe8a2';
-    if (front !== !['telegraph', 'boss-slam', 'nova', 'ultimate', 'levelup'].includes(kind)) return;
+    if (
+      front !==
+      !['telegraph', 'boss-slam', 'boss-meteor', 'nova', 'ultimate', 'levelup'].includes(kind)
+    )
+      return;
     c.save();
     c.translate(effect.x || 0, effect.y || 0);
     c.globalAlpha = alpha;
-    if (kind === 'telegraph') {
-      ellipse(c, 0, 0, radius, 22, '#f26c474a');
+    if (kind === 'boss-meteor') {
+      glow(c, 0, -150, 130, '#ff572299');
+      path(c, 'M -32 -330 L 25 -330 L 45 0 L -38 0 Z', '#ffe392aa');
+      ellipse(c, 0, -25, 55, 40, '#ff8b35dd');
+    } else if (kind === 'telegraph') {
+      ellipse(c, 0, 0, radius, 22, '#f2524799');
+      c.font = '900 15px Arial';
+      c.textAlign = 'center';
+      c.lineWidth = 4;
+      c.strokeStyle = '#28162a';
+      const warning = effect.attackKind === 'meteor' ? 'METEOR · MOVE' : 'SHOCKWAVE · JUMP';
+      c.strokeText(warning, 0, -36);
+      c.fillStyle = '#fff4bf';
+      c.fillText(warning, 0, -36);
       c.strokeStyle = '#ffcf86';
       c.lineWidth = 2;
       c.stroke();
@@ -1756,13 +1739,24 @@ export class Renderer {
     c.save();
     c.globalAlpha = clamp((number.life ?? 1) * 2, 0, 1);
     c.textAlign = 'center';
-    c.font = `900 ${text.length > 8 ? 15 : 21}px system-ui`;
+    const numeric = /^\d/.test(text),
+      gold = /g$/.test(text),
+      healing = /HP|HEAL/.test(text);
+    const size = numeric ? 28 : text.length > 12 ? 17 : 23;
+    c.font = `900 ${size}px Arial, sans-serif`;
     c.lineJoin = 'round';
-    c.lineWidth = 4;
-    c.strokeStyle = pal[1];
-    c.strokeText(text, number.x, number.y);
-    c.fillStyle = /^[-+]?\d/.test(text) ? pal[0] : number.color || pal[0];
-    c.fillText(text, number.x, number.y);
+    c.lineWidth = 6;
+    c.strokeStyle = '#251529';
+    const y = number.y - Math.max(0, 1 - (number.life ?? 1)) * 26;
+    c.strokeText(text, number.x, y);
+    const fill = c.createLinearGradient(0, y - size, 0, y);
+    fill.addColorStop(0, healing ? '#edfff0' : gold ? '#fffbd4' : numeric ? pal[0] : '#ffffff');
+    fill.addColorStop(
+      1,
+      healing ? '#52ff9b' : gold ? '#ffc228' : numeric ? '#ff9b35' : number.color || pal[0],
+    );
+    c.fillStyle = fill;
+    c.fillText(text, number.x, y);
     c.restore();
   }
   crystal(c, x, y, size, alpha) {

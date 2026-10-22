@@ -2853,3 +2853,331 @@ button {
     line-height: 10px;
   }
 }
+
+/* Compact edge docks keep the hero, name and walkable platforms clear. */
+.minimap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid #b79662;
+  border-radius: 8px;
+  font-size: 9px;
+  min-height: 28px;
+}
+.minimap-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+.minimap-collapsed .minimap {
+  display: none;
+}
+.auto-button.active {
+  color: #2c1904;
+  background: linear-gradient(#ffe994, #edb149);
+  border-color: #8d5c25;
+}
+.auto-button.active small {
+  color: #231300;
+  font-weight: 900;
+}
+.shop-list {
+  display: grid;
+  gap: 12px;
+}
+.shop-row {
+  border: 1px solid #d9bb7466;
+  border-radius: 10px;
+  padding: 12px;
+  background: #173932;
+}
+@media (max-width: 1000px) {
+  .bottom-center {
+    position: fixed;
+    top: 79px;
+    left: 8px;
+    bottom: auto;
+    transform: none;
+    align-items: flex-start;
+    gap: 4px;
+    max-width: 180px;
+  }
+  .bottom-center .save-indicator {
+    display: none;
+  }
+  .field-info {
+    top: 190px;
+  }
+  .bottom-center .auto-button {
+    min-height: 34px;
+    padding: 6px 11px;
+  }
+  .bottom-center .pet-status {
+    font-size: 9px;
+    min-height: 20px;
+  }
+  .bottom-center .utility-controls {
+    display: flex;
+    gap: 5px;
+  }
+  .bottom-center .utility-controls button {
+    min-height: 34px;
+    min-width: 36px;
+  }
+  .combat-controls {
+    opacity: 0.72;
+    transition: opacity 0.15s;
+  }
+  .combat-controls:active,
+  .combat-controls:focus-within {
+    opacity: 1;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .identity {
+    width: 158px;
+    min-width: 158px;
+    max-height: 58px;
+    padding: 5px;
+    gap: 5px;
+  }
+  .identity .portrait {
+    width: 32px;
+    height: 39px;
+  }
+  .identity-copy {
+    gap: 2px;
+  }
+  .identity-copy > b {
+    font-size: 13px;
+  }
+  .identity .class-name {
+    font-size: 6px;
+  }
+  .identity .vital {
+    width: 103px;
+    height: 10px;
+    min-height: 10px;
+  }
+  .identity .vital span {
+    font-size: 7px;
+    line-height: 8px;
+  }
+  .identity .level-badge {
+    left: 27px;
+    bottom: 0;
+  }
+  .journey {
+    display: none;
+  }
+  .bottom-center {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(180px, calc(env(safe-area-inset-left) + 176px));
+    display: grid;
+    grid-template-columns: 80px 85px;
+    gap: 3px 5px;
+    max-width: 190px;
+  }
+  .bottom-center .auto-button {
+    grid-column: 1;
+    grid-row: 1;
+    height: 34px;
+  }
+  .bottom-center .utility-controls {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .bottom-center .utility-controls button {
+    height: 34px;
+    padding: 5px;
+  }
+  .bottom-center .utility-controls button span:not(.potion-count) {
+    display: none;
+  }
+  .bottom-center .pet-status {
+    grid-row: 2;
+    grid-column: 1/3;
+    font-size: 8px;
+    min-height: 18px;
+    padding: 2px 5px;
+  }
+  .field-info {
+    top: 72px;
+    left: 8px;
+    width: 130px;
+    gap: 3px;
+  }
+  .field-info .minimap {
+    width: 130px;
+    padding: 3px;
+  }
+  .field-info .minimap canvas {
+    height: 40px;
+  }
+  .field-info .quest {
+    display: none;
+  }
+  .quick-nav {
+    gap: 3px;
+  }
+  .quick-nav button {
+    padding: 4px;
+    min-width: 26px;
+  }
+  .quick-nav button svg {
+    width: 15px;
+    height: 15px;
+  }
+  .quick-nav button span {
+    font-size: 7px;
+  }
+  .combat-controls {
+    width: 156px;
+    height: 134px;
+  }
+  .skill-wheel {
+    width: 150px;
+    height: 125px;
+  }
+  .skill {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .skill-0 {
+    right: 100px;
+    bottom: 8px;
+  }
+  .skill-1 {
+    right: 92px;
+    bottom: 51px;
+  }
+  .skill-2 {
+    right: 53px;
+    bottom: 88px;
+  }
+  .skill-3 {
+    right: 8px;
+    bottom: 86px;
+  }
+  .attack-button {
+    width: 58px;
+    height: 58px;
+    right: 0;
+    bottom: 0;
+  }
+  .jump-button {
+    width: 40px;
+    height: 40px;
+    right: 64px;
+    bottom: 0;
+  }
+  .skill-glyph svg {
+    width: 18px;
+    height: 18px;
+  }
+  .modal-layer {
+    padding: 10px max(12px, env(safe-area-inset-left));
+  }
+  .panel-forge {
+    max-height: calc(100dvh - 20px);
+    padding: 12px 16px;
+    overflow: hidden;
+  }
+  .panel-forge .panel-header {
+    margin: 0 0 3px;
+    padding: 0;
+  }
+  .panel-forge .panel-header h1 {
+    font-size: 20px;
+  }
+  .panel-forge > .panel-description {
+    margin: 3px 0 7px;
+    font-size: 10px;
+  }
+  .panel-forge .forge-slots {
+    margin: 0 0 5px;
+    gap: 4px;
+  }
+  .panel-forge .forge-slots button {
+    padding: 5px;
+    font-size: 9px;
+    min-height: 28px;
+  }
+  .panel-forge .item-row {
+    padding: 5px 8px;
+    min-height: 40px;
+  }
+  .panel-forge .item-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .panel-forge .forge-game {
+    padding: 5px 16px;
+  }
+  .panel-forge .forge-orb,
+  .panel-forge .forge-game > p {
+    display: none;
+  }
+  .panel-forge .timing-track {
+    height: 20px;
+    margin-top: 8px;
+  }
+  .panel-forge .timing-labels {
+    margin-top: 6px;
+  }
+  .panel-forge .forge-trigger {
+    padding: 9px;
+    margin-top: 5px;
+    min-height: 36px;
+  }
+  .panel-forge .forge-result {
+    font-size: 10px;
+    margin: 4px 0 0;
+  }
+}
+@media (orientation: portrait) {
+  .bottom-center {
+    top: 86px;
+    left: 8px;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 4px;
+    max-width: 220px;
+  }
+  .bottom-center .pet-status {
+    grid-row: 2;
+    grid-column: 1/3;
+  }
+  .bottom-center .utility-controls {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .bottom-center .auto-button {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .field-info {
+    top: 165px;
+  }
+  .field-info .quest {
+    display: none;
+  }
+}
+@media (orientation: portrait) {
+  .journey .brand {
+    display: none;
+  }
+  .journey {
+    position: absolute;
+    top: 140px;
+    right: 0;
+    width: auto;
+  }
+  .portrait-tip {
+    top: 165px;
+    right: 10px;
+  }
+  .field-info {
+    top: 174px;
+  }
+}

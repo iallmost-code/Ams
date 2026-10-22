@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as game from '../src/game/engine.js';
 
 test('all four areas define usable portals and travel respects locked destinations', () => {
-  const state = game.createGame({ player: { level: 10 } });
+  const state = game.createGame({ player: { level: 25 } });
   for (const area of state.world.areas) {
     assert.ok(area.portals?.length > 0, `${area.id} needs portals`);
     game.travelToArea(state, area.id);

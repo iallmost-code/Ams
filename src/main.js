@@ -12,6 +12,8 @@ import {
   travelToArea,
   upgradeSkill,
   forgeItem,
+  buyPotion,
+  buyUpgrade,
   salvageItem,
 } from './game/engine.js';
 import { Renderer } from './renderer.js';
@@ -118,6 +120,7 @@ async function onAction(action, payload) {
     case 'close':
       closePanel();
       break;
+    case 'shop':
     case 'inventory':
     case 'character':
     case 'settings':
@@ -157,6 +160,14 @@ async function onAction(action, payload) {
       persist();
       break;
     }
+    case 'buy-potion':
+      buyPotion(state, Number(payload));
+      persist();
+      break;
+    case 'buy-upgrade':
+      buyUpgrade(state, payload);
+      persist();
+      break;
     case 'salvage':
       salvageItem(state, payload);
       persist();
@@ -216,6 +227,8 @@ window.aetherStory = Object.freeze({
       settings: state.settings,
       unlockedAreas: state.unlockedAreas,
       player: state.player,
+      upgrades: state.upgrades,
+      deaths: state.deaths,
       pet: state.pet,
       enemies: state.enemies.map(({ id, type, x, y, hp, maxHp, platformId, respawnTimer }) => ({
         id,

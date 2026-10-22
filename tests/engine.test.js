@@ -211,14 +211,14 @@ test('equipment replacement, salvage, potion, class advancement, forging, skill 
   assert.equal(s.skillLevels[0], 2);
   assert.equal(engine.upgradeSkill(s, 3), false);
   assert.equal(engine.travelToArea(s, 'ember_altar'), false);
-  s.player.level = 10;
+  s.player.level = 20;
   step(s, {}, 0.02);
   assert.equal(engine.travelToArea(s, 'ember_altar'), true);
   assert.equal(s.currentArea, 'ember_altar');
   assert.ok(s.enemies.some((e) => e.isBoss && e.telegraph !== undefined));
   const saved = engine.serializeGame(s, { sound: false });
   const restored = engine.createGame(saved);
-  assert.equal(restored.player.level, 10);
+  assert.equal(restored.player.level, 20);
   assert.equal(restored.player.equipment.weapon.stars, 1);
   assert.equal(restored.skillLevels[0], 2);
   assert.equal(restored.currentArea, 'ember_altar');
@@ -235,9 +235,9 @@ test('quest can only be claimed once and grants advancement', () => {
 });
 test('leveling consumes experience thresholds and unlocks areas', () => {
   const s = engine.createGame();
-  s.player.xp = 10000;
+  s.player.xp = 250000;
   step(s, {}, 0.01);
-  assert.ok(s.player.level >= 6);
+  assert.ok(s.player.level >= 16);
   assert.ok(s.unlockedAreas.includes('crystal_cavern'));
   assert.ok(s.sp > 0);
   assert.ok(s.player.maxHp > 100);
@@ -248,14 +248,14 @@ test('locked borders stop manual entry until level unlocks the next area', () =>
   step(s, { right: true }, 2);
   assert.ok(s.player.x + s.player.w <= 1200);
   assert.equal(s.currentArea, 'emerald_glade');
-  s.player.level = 3;
+  s.player.level = 10;
   step(s, { right: true }, 1);
   assert.ok(s.player.x > 1200);
   assert.equal(s.currentArea, 'whispering_canopy');
 });
 test('boss announces a damaging strike long enough to evade it', () => {
   const s = engine.createGame();
-  s.player.level = 12;
+  s.player.level = 20;
   engine.travelToArea(s, 'ember_altar');
   const boss = s.enemies.find((e) => e.isBoss);
   s.enemies = [boss];
@@ -266,7 +266,7 @@ test('boss announces a damaging strike long enough to evade it', () => {
   const hp = s.player.hp;
   step(s, {}, 0.65);
   assert.equal(s.player.hp, hp, 'warning causes no immediate damage');
-  step(s, {}, 0.5);
+  step(s, {}, 0.7);
   assert.ok(s.player.hp < hp, 'announced strike deals damage');
   s.player.invuln = 0;
   s.player.hp = s.player.maxHp;
@@ -274,7 +274,7 @@ test('boss announces a damaging strike long enough to evade it', () => {
   engine.updateGame(s, {}, 1 / 120);
   s.player.x = boss.x - 500;
   const safe = s.player.hp;
-  step(s, {}, 1.2);
+  step(s, {}, 1.6);
   assert.equal(s.player.hp, safe, 'moving outside telegraph avoids damage');
 });
 test('manual skill presses are edges, while mana regenerates without attacks', () => {

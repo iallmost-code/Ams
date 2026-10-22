@@ -34,6 +34,9 @@ test('starts a real canvas game with movement, jump, pause and no runtime except
     background: true,
     heroes: true,
     creatures: true,
+    cavern: true,
+    altar: true,
+    pip: true,
   });
   await page.waitForTimeout(350);
   const before = await snapshot(page);
@@ -162,7 +165,7 @@ test('forge timing enhances real equipment and a damage signature survives reloa
     .toBe(true);
   await page.locator('[data-action="stop-forge"]').click();
   const forged = await snapshot(page);
-  expect(forged.player.gold).toBe(before.player.gold - 100);
+  expect(forged.player.gold).toBe(before.player.gold - 150);
   expect(forged.starCores).toBe(before.starCores - 1);
   expect(forged.player.equipment.weapon.stars).toBe(1);
   await page.keyboard.press('Escape');
@@ -295,11 +298,28 @@ for (const [index, classId] of ['vanguard', 'arcanist', 'nightblade', 'ranger'].
   test(`${classId} casts all four skills and uses its area's portal`, async ({ page }) => {
     const areas = ['emerald_glade', 'whispering_canopy', 'crystal_cavern', 'ember_altar'];
     const state = createGame({ player: { level: 25 }, classId, currentArea: areas[index] });
+    for (const slot of ['hat', 'armor', 'cape', 'gloves', 'boots'])
+      state.player.equipment[slot] = {
+        id: `test-${slot}`,
+        name: `Test ${slot}`,
+        type: slot,
+        rarity: 'epic',
+        icon: '✦',
+        count: 1,
+        defense: 50,
+        stars: 10,
+      };
+    state.player.equipment.weapon.attack = 85;
+    state.player.equipment.weapon.stars = 10;
     await seedProgress(page, serializeGame(state));
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await launch(page);
     expect((await snapshot(page)).currentArea).toBe(areas[index]);
+    if (index >= 2) {
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: `docs/qa/after-${index === 2 ? 'cavern' : 'altar'}.png` });
+    }
     for (const key of ['z', 'x', 'c', 'v']) {
       await page.keyboard.press(key);
       await page.waitForTimeout(60);
@@ -315,3 +335,64 @@ for (const [index, classId] of ['vanguard', 'arcanist', 'nightblade', 'ranger'].
     expect(errors).toEqual([]);
   });
 }
+
+for (const [width, height, orientation] of [
+  [844, 390, 'landscape'],
+  [390, 844, 'portrait'],
+]) {
+  test(`phone HUD, collapsible map and complete forge fit ${orientation}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    const game = createGame();
+    game.player.gold = 50000;
+    await seedProgress(page, serializeGame(game));
+    await launch(page);
+    await page.waitForTimeout(500);
+    const dock = await page.locator('.bottom-center').boundingBox();
+    expect(dock.y + dock.height).toBeLessThanOrEqual(height < 500 ? 80 : 175);
+    if (height < 500) {
+      const card = await page.locator('.identity').boundingBox();
+      expect(card.width).toBeLessThanOrEqual(170);
+      expect(card.height).toBeLessThanOrEqual(60);
+    }
+    const toggle = page.getByRole('button', { name: /mini-map/i });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.click();
+    await expect(page.locator('.minimap canvas')).toBeVisible();
+    await toggle.click();
+    await expect(page.locator('.minimap canvas')).toBeHidden();
+    await page.keyboard.press('t');
+    await expect(page.locator('.auto-button')).toHaveAttribute('aria-pressed', 'true');
+    await page.screenshot({ path: `docs/qa/after-${orientation}.png` });
+    await page.keyboard.press('g');
+    const start = page.getByRole('button', { name: 'Begin forging' });
+    const box = await start.boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(height - 8);
+    expect(
+      await page.locator('.panel-forge').evaluate((el) => el.scrollHeight <= el.clientHeight + 1),
+    ).toBe(true);
+    await page.screenshot({ path: `docs/qa/after-forge-${orientation}.png` });
+    await start.click();
+    await expect(page.getByRole('button', { name: 'STOP THE SPARK' })).toBeVisible();
+    await page.getByRole('button', { name: 'STOP THE SPARK' }).click();
+    await expect(page.locator('.forge-result')).toBeVisible();
+  });
+}
+
+test('supply shop spends real gold on potions and persistent training', async ({ page }) => {
+  const game = createGame();
+  game.player.gold = 5000;
+  await seedProgress(page, serializeGame(game));
+  await launch(page);
+  await page.getByRole('button', { name: 'Shop', exact: true }).click();
+  await page.getByRole('button', { name: 'Buy 5 tonics' }).click();
+  await page.getByRole('button', { name: 'Train vitality' }).click();
+  let s = await snapshot(page);
+  expect(s.player.gold).toBe(4300);
+  expect(s.player.maxHp).toBe(205);
+  expect(s.upgrades.vitality).toBe(1);
+  await page.reload();
+  await launch(page);
+  s = await snapshot(page);
+  expect(s.upgrades.vitality).toBe(1);
+  expect(s.player.maxHp).toBe(205);
+});

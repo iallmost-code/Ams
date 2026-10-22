@@ -1,0 +1,32 @@
+{
+  "seconds": 3600,
+  "level": 49,
+  "gold": 109470,
+  "kills": 1772,
+  "deaths": 0,
+  "timeTo10": 121,
+  "timeTo25": 585,
+  "firstBossKill": 136,
+  "checkpoints": {
+    "600": {
+      "level": 25,
+      "gold": 17057,
+      "deaths": 0
+    },
+    "900": {
+      "level": 29,
+      "gold": 26386,
+      "deaths": 0
+    },
+    "1800": {
+      "level": 38,
+      "gold": 54768,
+      "deaths": 0
+    },
+    "3600": {
+      "level": 49,
+      "gold": 109470,
+      "deaths": 0
+    }
+  }
+}
