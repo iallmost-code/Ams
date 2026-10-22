@@ -288,6 +288,7 @@ window.aetherStory = Object.freeze({
   getDiagnostics() {
     return {
       version: '1.0.0',
+      text: structuredClone(renderer.textDiagnostics || { nameplates: [], floating: [] }),
       art: artStatus(),
       fps,
       saveAvailable,

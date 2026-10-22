@@ -9,3 +9,5 @@ Approved scope: NPC dialogue, tracked quest chains, navigation to objectives and
 5. Push only the new source branch and open a PR into main. PR #3 was merged separately during implementation; this feature PR introduces only the quest expansion. No feature-branch publishing or main merge.
 
 PR #4 follow-up: implemented five Glade bridge missions at levels 3/5/6/8/9 and a named mini-boss, three local-midnight daily bounties carried by every area guide, clearer tracker/readable labels, a session-only portrait hint, revisioned journal migration, balance/gap regressions, and refreshed phone captures. Verified timings and limits are in docs/QA.md. This follow-up stays on the same branch and PR; no merge or publishing.
+
+AUTO safety/readability follow-up on the same PR: shared effective-gear upgrades, preparation-gated travel, low-health recovery at safe area edges, exact 35-minute survival and prepared-Canopy regressions, CSS-pixel labels/stacked popups, shorter useful daily bounties, and preinstalled-browser CI. Full multi-hour balance assertions run through npm run balance; npm test retains fast smoke and direct reproduction coverage.

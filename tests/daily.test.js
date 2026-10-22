@@ -180,3 +180,29 @@ test('Gloamcap is tougher, requires the named enemy, survives active reload and 
   assert.equal(enemy.maxHp, 80);
   assert.ok(!enemy.isElite);
 });
+
+test('short daily bounties grant level-scaled XP, useful cores and tonics exactly once', async () => {
+  const { DAILY_BOUNTIES, bountyRewards } = await import('../src/game/daily.js');
+  assert.deepEqual(
+    DAILY_BOUNTIES.map((b) => b.count),
+    [25, 50, 100],
+  );
+  const low = bountyRewards(3, DAILY_BOUNTIES[2]),
+    high = bountyRewards(10, DAILY_BOUNTIES[2]);
+  assert.ok(high.xp > low.xp);
+  assert.ok(high.cores >= 5 && high.tonics >= 2);
+  const s = engine.createGame({ player: { level: 10 } });
+  atGuide(s);
+  engine.acceptDailyBounty(s);
+  s.daily.progress = 25;
+  const xp = s.player.xp,
+    cores = s.starCores,
+    tonics = s.player.inventory.filter((i) => i.type === 'potion').reduce((n, i) => n + i.count, 0);
+  assert.equal(engine.claimDailyBounty(s), true);
+  assert.ok(s.player.xp > xp);
+  assert.ok(s.starCores > cores);
+  assert.ok(
+    s.player.inventory.filter((i) => i.type === 'potion').reduce((n, i) => n + i.count, 0) > tonics,
+  );
+  assert.equal(engine.claimDailyBounty(s), false);
+});

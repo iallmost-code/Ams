@@ -127,6 +127,10 @@ test('AUTO-quest uses an unlocked portal to reach the next giver and pauses befo
     player: { level: 10 },
     story: { completed: STORY_QUESTS.filter((q) => q.areaId === 'emerald_glade').map((q) => q.id) },
   });
+  s.player.equipment.weapon.attack = 75;
+  s.player.equipment.armor.defense = 60;
+  s.player.statLevel = 0;
+  engine.updateGame(s, {}, 1 / 120);
   engine.toggleAutoQuest(s);
   for (let i = 0; i < 20 * 30 && s.story.activeId !== 'canopy-trail'; i++) tick(s, 1 / 30);
   assert.equal(s.currentArea, 'whispering_canopy');

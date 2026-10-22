@@ -157,7 +157,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       node(
         'p',
         '',
-        `${view.remaining}/3 rewards left today · Resets at local midnight. Any area’s guide carries Rowan’s board. No XP rewards.`,
+        `${view.remaining}/3 rewards left today · Resets at local midnight. Any area’s guide carries Rowan’s board. XP scales to your level; cores and tonics prepare you for the next area.`,
       ),
     );
     if (view.bounty) {
@@ -167,7 +167,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         node(
           'p',
           '',
-          `Defeat ${b.count} creatures in any area · ${view.progress}/${b.count} · ${b.gold} gold + ${b.cores} cores`,
+          `Defeat ${b.count} creatures in any area · ${view.progress}/${b.count} · ${view.rewards.xp} XP · ${b.gold} gold · ${b.cores} cores · ${b.tonics} tonics`,
         ),
       );
       const guide = state.world.areas.find((a) => a.id === state.currentArea)?.npc,
@@ -804,7 +804,12 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       }
     }
     setText('.story-title', story.quest?.title || 'A trail restored');
-    setText('.quest-progress', story.description || 'All four chapters complete');
+    setText(
+      '.quest-progress',
+      state.story.autoQuest && state.story.status.startsWith('Gear up')
+        ? state.story.status
+        : story.description || 'All four chapters complete',
+    );
     setText(
       '.story-strip-title',
       story.quest
@@ -813,15 +818,18 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     );
     setText(
       '.story-strip-progress',
-      story.status === 'locked'
-        ? daily.status === 'active' || daily.status === 'ready'
-          ? `Daily: ${daily.bounty.title} · ${daily.progress}/${daily.bounty.count}`
-          : daily.status === 'available'
-            ? 'Try a daily bounty · Rowan’s board'
-            : 'Daily rewards claimed · train on the lantern trail'
-        : state.story.autoQuest
-          ? `AUTO · ${state.story.status}`
-          : story.description || 'All chapters complete',
+      state.autoStatus ||
+        (state.story.autoQuest && state.story.status.startsWith('Gear up')
+          ? state.story.status
+          : story.status === 'locked'
+            ? daily.status === 'active' || daily.status === 'ready'
+              ? `Daily: ${daily.bounty.title} · ${daily.progress}/${daily.bounty.count}`
+              : daily.status === 'available'
+                ? 'Try a daily bounty · Rowan’s board'
+                : 'Daily rewards claimed · train on the lantern trail'
+            : state.story.autoQuest
+              ? `AUTO · ${state.story.status}`
+              : story.description || 'All chapters complete'),
     );
     $$('.story-strip [data-action="follow-quest"], .quest [data-action="follow-quest"]').forEach(
       (el) => {

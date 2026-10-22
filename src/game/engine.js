@@ -1,3 +1,5 @@
+import { gearScore, areaReadiness } from './auto.js';
+export { areaReadiness } from './auto.js';
 import { normalizeDaily, refreshDailyBounties, getDailyView, recordDailyDefeat } from './daily.js';
 export { refreshDailyBounties, getDailyView } from './daily.js';
 import {
@@ -358,11 +360,45 @@ export function createGame(progress = null, now = new Date()) {
 export function toggleAuto(s) {
   s.story.autoQuest = false;
   s.story.status = 'idle';
+  s.autoEquipTimer = 0;
+  s.autoStatus = '';
+  s.autoRecovering = false;
   s.auto = !s.auto;
   s.autoTarget = null;
   s.autoNavigation.edge = null;
   notice(s, s.auto ? 'AUTO exploration enabled' : 'Manual adventure');
   return s.auto;
+}
+export function equipBestGear(s) {
+  const best = { ...s.player.equipment };
+  for (const item of s.player.inventory)
+    if (SLOTS.includes(item.type) && gearScore(item) > gearScore(best[item.type]))
+      best[item.type] = item;
+  for (const slot of SLOTS)
+    if (best[slot] && best[slot] !== s.player.equipment[slot]) equipItem(s, best[slot].id);
+}
+function autoSurvivalInput(s) {
+  const p = s.player;
+  if (p.hp < p.maxHp * 0.45) usePotion(s);
+  if (p.hp >= p.maxHp * 0.55) s.autoRecovering = false;
+  if (p.hp < p.maxHp * 0.35) s.autoRecovering = true;
+  if (!s.autoRecovering) return null;
+  s.autoStatus = 'Recovering · keeping distance while tonics / Pip recharge';
+  const input = {};
+  if (p.climbing) return { down: true };
+  // Ground patrols cannot enter the sheltered edge. Drop through one-way ledges
+  // before returning there, rather than oscillating between nearby attackers.
+  const area = s.world.areas.find((a) => a.id === s.currentArea),
+    safeX = area.x + 110;
+  if (Math.abs(center(p) - safeX) > 12) {
+    input.left = center(p) > safeX;
+    input.right = !input.left;
+  }
+  if (p.grounded && p.platformId && p.platformId !== 'ground') {
+    input.down = true;
+    input.jump = true;
+  }
+  return input;
 }
 export function equipItem(s, id) {
   const p = s.player,
@@ -465,6 +501,20 @@ export function acceptDailyBounty(s, id, now = new Date()) {
   notice(s, `Rowan’s daily: ${view.bounty.title}`);
   return true;
 }
+function grantTonics(s, count, source) {
+  if (!count) return;
+  const item = s.player.inventory.find((i) => i.type === 'potion' && i.count + count <= 9999);
+  if (item) item.count += count;
+  else
+    s.player.inventory.push({
+      id: `${source}-tonic`,
+      name: 'Crimson Tonic',
+      type: 'potion',
+      rarity: 'normal',
+      icon: '♥',
+      count,
+    });
+}
 export function claimDailyBounty(s, now = new Date()) {
   refreshDailyBounties(s, now);
   const view = getDailyView(s);
@@ -472,9 +522,15 @@ export function claimDailyBounty(s, now = new Date()) {
   s.daily.claimed.push(view.bounty.id);
   s.daily.activeId = null;
   s.daily.progress = 0;
-  s.player.gold += view.bounty.gold;
-  s.starCores += view.bounty.cores;
-  notice(s, `Daily complete · +${view.bounty.gold} gold · +${view.bounty.cores} cores`);
+  const reward = view.rewards;
+  s.player.gold += reward.gold;
+  s.starCores += reward.cores;
+  gainExperience(s, reward.xp);
+  grantTonics(s, reward.tonics, `daily-${s.daily.day}-${view.bounty.id}`);
+  notice(
+    s,
+    `Daily complete · +${reward.xp} XP · +${reward.cores} cores · +${reward.tonics} tonics`,
+  );
   return true;
 }
 export function acceptStoryQuest(s, id) {
@@ -505,25 +561,14 @@ export function turnInStoryQuest(s) {
   s.player.gold += reward.gold;
   s.starCores += reward.cores || 0;
   gainExperience(s, reward.xp);
-  if (reward.tonics) {
-    const item = s.player.inventory.find(
-      (i) => i.type === 'potion' && i.id === 'health-potion' && i.count + reward.tonics <= 9999,
-    );
-    if (item) item.count += reward.tonics;
-    else
-      s.player.inventory.push({
-        id: `story-${q.id}-tonic`,
-        type: 'potion',
-        name: 'Crimson Tonic',
-        rarity: 'normal',
-        icon: '♥',
-        count: reward.tonics,
-      });
-  }
+  grantTonics(s, reward.tonics, `story-${q.id}`);
   notice(s, `${q.title} complete · +${reward.gold} gold · +${reward.xp} XP`);
   return true;
 }
 export function toggleAutoQuest(s) {
+  s.autoEquipTimer = 0;
+  s.autoStatus = '';
+  s.autoRecovering = false;
   s.story.autoQuest = !s.story.autoQuest;
   s.auto = s.story.autoQuest;
   s.story.status = s.story.autoQuest ? 'following' : 'idle';
@@ -1283,10 +1328,15 @@ function autoQuestInput(s, dt) {
     story.status = view.description;
     const daily = getDailyView(s),
       guide = s.world.areas.find((a) => a.id === s.currentArea)?.npc;
-    if (guide && ['available', 'ready'].includes(daily.status)) {
+    const reserveDaily =
+      daily.status === 'ready' ||
+      (daily.status === 'available' &&
+        view.quest.minLevel >= 8 &&
+        story.autoDailyGate !== view.quest.id);
+    if (guide && reserveDaily) {
       if (nearDailyGuide(s)) {
         if (daily.status === 'ready') claimDailyBounty(s);
-        else acceptDailyBounty(s);
+        else if (acceptDailyBounty(s)) story.autoDailyGate = view.quest.id;
         story.cooldown = 0.6;
         return {};
       }
@@ -1311,6 +1361,10 @@ function autoQuestInput(s, dt) {
     if (!portal || !s.unlockedAreas.includes(next.id)) {
       story.status = 'The next gate is locked';
       return {};
+    }
+    if (next.x > current.x && !areaReadiness(s, next.id)) {
+      story.status = `Gear up before ${next.name} — check Bag / Forge / Shop`;
+      return autoInput(s, dt);
     }
     story.status = `Travel to ${area.name}`;
     if (Math.hypot(center(p) - portal.x, p.y + p.h - portal.y) < 70) {
@@ -1454,6 +1508,8 @@ function frame(s, raw, dt) {
         s.story.autoQuest = false;
         s.auto = false;
         s.story.status = 'fallen';
+        s.autoStatus = '';
+        s.autoRecovering = false;
       }
       p.deadTimer = 2.5;
       p.climbing = null;
@@ -1471,8 +1527,19 @@ function frame(s, raw, dt) {
   if (s.auto && manual) s.autoOverride = 2.5;
   else s.autoOverride = Math.max(0, s.autoOverride - dt);
   const usingAuto = s.auto && s.autoOverride === 0;
+  if (!usingAuto) s.autoStatus = '';
+  let survival = null;
+  if (usingAuto) {
+    s.autoEquipTimer = Math.max(0, (s.autoEquipTimer || 0) - dt);
+    if (!s.autoEquipTimer) {
+      equipBestGear(s);
+      s.autoEquipTimer = 1;
+    }
+    s.autoStatus = '';
+    survival = autoSurvivalInput(s);
+  }
   const input = usingAuto
-    ? { ...(s.story.autoQuest ? autoQuestInput(s, dt) : autoInput(s, dt)) }
+    ? { ...(survival || (s.story.autoQuest ? autoQuestInput(s, dt) : autoInput(s, dt))) }
     : { ...raw };
   if (raw.attack) input.attack = true;
   for (const key of ['skill', 'skill2', 'skill3', 'skill4']) {

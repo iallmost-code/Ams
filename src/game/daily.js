@@ -1,9 +1,42 @@
-/** Rowan's courier board: three shared bounties per device-local calendar day. No XP. */
+import { xpThreshold } from './balance.js';
+/** Rowan's courier board: three shared bounties per device-local calendar day. Level-scaled, bounded XP rewards. */
 export const DAILY_BOUNTIES = [
-  { id: 'trail-patrol', title: 'Rowan’s trail patrol', count: 60, gold: 60, cores: 1 },
-  { id: 'lantern-watch', title: 'Keep the lanterns burning', count: 120, gold: 90, cores: 1 },
-  { id: 'warden-relief', title: 'Relief for the wardens', count: 600, gold: 120, cores: 2 },
+  {
+    id: 'trail-patrol',
+    title: 'Rowan’s trail patrol',
+    count: 25,
+    gold: 100,
+    cores: 2,
+    tonics: 1,
+    xpFraction: 0.02,
+  },
+  {
+    id: 'lantern-watch',
+    title: 'Keep the lanterns burning',
+    count: 50,
+    gold: 180,
+    cores: 3,
+    tonics: 1,
+    xpFraction: 0.03,
+  },
+  {
+    id: 'warden-relief',
+    title: 'Relief for the wardens',
+    count: 100,
+    gold: 300,
+    cores: 5,
+    tonics: 3,
+    xpFraction: 0.05,
+  },
 ];
+export function bountyRewards(level, bounty) {
+  return {
+    gold: bounty.gold,
+    cores: bounty.cores,
+    tonics: bounty.tonics,
+    xp: Math.max(1, Math.round(xpThreshold(level) * bounty.xpFraction)),
+  };
+}
 export function localDay(now = new Date()) {
   const d = now instanceof Date ? now : new Date(now);
   if (!Number.isFinite(d.getTime())) return null;
@@ -46,6 +79,7 @@ export function getDailyView(state) {
           ? 'ready'
           : 'active'
         : 'available',
+    rewards: bounty ? bountyRewards(state.player.level, bounty) : null,
     remaining: 3 - d.claimed.length,
     progress: d.progress,
   };

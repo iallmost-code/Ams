@@ -1,3 +1,4 @@
+import { worldToScreen, placeFloatingTexts } from './game/screen-text.js';
 import { getStoryView } from './game/quests.js';
 import { valleyArt, heroArt, creatureArt, cavernArt, altarArt, pipArt } from './art.js';
 /** Original AetherStory M illustration. All artwork is drawn locally with Canvas. */
@@ -128,6 +129,7 @@ export class Renderer {
           : 'forest';
   }
   render(state, dt = 1 / 60) {
+    this.textDiagnostics = { nameplates: [], floating: [] };
     if (!state?.player) return;
     const c = this.ctx,
       p = state.player;
@@ -187,8 +189,17 @@ export class Renderer {
     if (this.particles) for (const particle of state.particles || []) this.drawParticle(particle);
     // Name plates sit above terrain and sprites so ledges cannot hide the text.
     for (const area of world.areas || [])
-      if (area.npc && this.visible(area.npc.x - 100, 240)) this.drawNPCLabel(area.npc);
-    for (const number of state.numbers || []) this.drawNumber(number, state.damageSkin);
+      if (area.npc) {
+        const point = this.screenPoint(area.npc.x, area.npc.y);
+        if (
+          point.x >= -20 &&
+          point.x <= this.canvas.width / this.dpr + 20 &&
+          point.y > 0 &&
+          point.y < this.canvas.height / this.dpr - 20
+        )
+          this.drawNPCLabel(area.npc);
+      }
+    this.drawFloatingNumbers(state.numbers || [], state.damageSkin);
     c.restore();
     this.drawForeground();
   }
@@ -495,33 +506,45 @@ export class Renderer {
       ellipse(c, 18 + Math.sin(i * 2) * 8, -115 + i * 23, 10, 5, p.leaf[2], i);
     c.restore();
   }
-  drawNamePill(text, x, y, color = '#fff1b9') {
-    const c = this.ctx;
+  screenPoint(x, y) {
+    return worldToScreen(x, y, this.camera, this.scale, this.dpr);
+  }
+  drawNamePill(text, x, y, color = '#fff1b9', offset = 16) {
+    const c = this.ctx,
+      point = this.screenPoint(x, y),
+      viewWidth = this.canvas.width / this.dpr;
     c.save();
-    c.font = '900 14px Arial, sans-serif';
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.font = '900 11px Arial, sans-serif';
     c.textAlign = 'center';
-    const width = c.measureText(text).width + 18;
-    // Labels remain readable when their owner is partly beyond the camera edge.
-    const transform = c.getTransform();
-    x = clamp(
-      x,
-      -transform.e / transform.a + width / 2 + 4,
-      (this.canvas.width - transform.e) / transform.a - width / 2 - 4,
-    );
+    const width = Math.min(c.measureText(text).width + 14, viewWidth - 8),
+      height = 19;
+    x = clamp(point.x, width / 2 + 4, viewWidth - width / 2 - 4);
+    y = point.y + offset;
     c.fillStyle = '#15252fee';
     c.strokeStyle = '#c4a96b';
     c.lineWidth = 1;
     c.beginPath();
-    c.roundRect(x - width / 2, y - 16, width, 23, 7);
+    c.roundRect(x - width / 2, y - 13, width, height, 6);
     c.fill();
     c.stroke();
-    c.lineWidth = 3;
+    c.lineWidth = 2.5;
     c.strokeStyle = '#101a24';
-    c.strokeText(text, x, y);
+    c.strokeText(text, x, y, width - 10);
     c.fillStyle = color;
-    c.fillText(text, x, y);
+    c.fillText(text, x, y, width - 10);
+    this.textDiagnostics.nameplates.push({
+      text,
+      x: x - width / 2,
+      y: y - 13,
+      width,
+      height,
+      fontSize: 11,
+      anchorY: point.y,
+    });
     c.restore();
   }
+
   drawNPC(npc) {
     const c = this.ctx;
     c.save();
@@ -563,22 +586,25 @@ export class Renderer {
     c.restore();
   }
   drawNPCLabel(npc) {
-    const c = this.ctx;
+    this.drawNamePill(npc.name, npc.x, npc.y, '#fff1b9', 17);
+    const c = this.ctx,
+      point = this.screenPoint(npc.x, npc.y - (npc.portrait !== undefined ? 88 : 65));
     c.save();
-    c.translate(npc.x, npc.y);
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     c.textAlign = 'center';
-    this.drawNamePill(npc.name, 0, -93, '#fff1b9');
     c.fillStyle = '#f4d986';
-    c.font = 'bold 19px Georgia';
-    c.fillText(
+    c.strokeStyle = '#18303b';
+    c.lineWidth = 2;
+    c.font = '900 15px Arial';
+    const marker =
       getStoryView(this.state).quest?.giverId === npc.id
         ? { ready: '?', available: '!', locked: '◇' }[getStoryView(this.state).status] || '·'
-        : '·',
-      0,
-      -122 + Math.sin(this.t * 2) * 3,
-    );
+        : '·';
+    c.strokeText(marker, point.x, point.y - 9);
+    c.fillText(marker, point.x, point.y - 9);
     c.restore();
   }
+
   drawStoryBeacon() {
     const view = getStoryView(this.state),
       loc = view.quest?.objective.location;
@@ -905,7 +931,7 @@ export class Renderer {
       }
       c.restore();
       c.save();
-      this.drawNamePill('Aether', x, feet + 16, '#ffffff');
+      this.drawNamePill('Aether', x, feet, '#ffffff');
       c.restore();
       return;
     }
@@ -1277,15 +1303,7 @@ export class Renderer {
     const frame = pet.healFlash > 0 ? 3 : pet.mode === 'looting' ? 2 : Math.floor(this.t * 7) % 2;
     if (pipArt.frames[frame]) c.drawImage(pipArt.frames[frame], -38, -42, 76, 76);
     c.restore();
-    c.save();
-    c.textAlign = 'center';
-    c.font = 'bold 11px Inter, sans-serif';
-    c.lineWidth = 3;
-    c.strokeStyle = '#174458';
-    c.fillStyle = '#d4ffff';
-    c.strokeText('PIP', x, y + 37);
-    c.fillText('PIP', x, y + 37);
-    c.restore();
+    this.drawNamePill('Pip', x, y + 34, '#d4ffff', 17);
     // Player HP remains visible beside the action, even on a small phone.
     c.save();
     const hx = player.x + player.w / 2,
@@ -1329,7 +1347,7 @@ export class Renderer {
       c.drawImage(creatureArt.frames[row * 4 + col], -size / 2, -size - bob, size, size);
       c.restore();
       if (enemy.isElite) {
-        this.drawNamePill(enemy.name, x, feet - size - 21, '#ffe08c');
+        this.drawNamePill(enemy.name, x, feet - size, '#ffe08c', -10);
         glow(c, x, feet - size / 2, 48, '#ffd85b22');
         star(c, x, feet - size - 46, 9, '#ffe08c');
       }
@@ -1798,40 +1816,60 @@ export class Renderer {
     ellipse(c, particle.x, particle.y, size, size, particle.color || '#ffe8ae');
     c.restore();
   }
-  drawNumber(number, skin = 'amber') {
-    if (!Number.isFinite(number.x) || !Number.isFinite(number.y)) return;
+  drawFloatingNumbers(numbers, skin = 'amber') {
     const c = this.ctx,
-      pal = {
-        amber: ['#fff3bc', '#845f3b'],
-        sakura: ['#ffe0ed', '#a54f80'],
-        frost: ['#e0ffff', '#377491'],
-        cyber: ['#d9ffbd', '#496a68'],
-        solar: ['#fff5a9', '#ae6a37'],
-      }[skin] || ['#fff3bc', '#845f3b'];
-    const text = String(number.text ?? number.amount ?? '');
+      viewport = { width: this.canvas.width / this.dpr, height: this.canvas.height / this.dpr };
     c.save();
-    c.globalAlpha = clamp((number.life ?? 1) * 4, 0, 1);
-    c.textAlign = 'center';
-    const numeric = /^\d/.test(text),
-      gold = /g$/.test(text),
-      healing = /HP|HEAL/.test(text);
-    const size = numeric || gold ? 28 : text.length > 12 ? 17 : 23;
-    c.font = `900 ${size}px Arial, sans-serif`;
-    c.lineJoin = 'round';
-    c.lineWidth = 6;
-    c.strokeStyle = '#251529';
-    const y = number.y - Math.max(0, 1 - (number.life ?? 1)) * 26;
-    c.strokeText(text, number.x, y);
-    const fill = c.createLinearGradient(0, y - size, 0, y);
-    fill.addColorStop(0, healing ? '#edfff0' : gold ? '#ffec80' : numeric ? pal[0] : '#ffffff');
-    fill.addColorStop(
-      1,
-      healing ? '#52ff9b' : gold ? '#ffc400' : numeric ? '#ff9b35' : number.color || pal[0],
-    );
-    c.fillStyle = fill;
-    c.fillText(text, number.x, y);
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const labels = numbers
+      .filter((n) => Number.isFinite(n.x) && Number.isFinite(n.y))
+      .map((number) => {
+        const text = String(number.text ?? number.amount ?? ''),
+          size = /^[+−-]?\d/.test(text) ? 20 : text.length > 12 ? 13 : 16;
+        const point = this.screenPoint(number.x, number.y);
+        c.font = `900 ${size}px Arial, sans-serif`;
+        return {
+          text,
+          number,
+          fontSize: size,
+          x: point.x,
+          y: point.y - (1 - (number.life ?? 1)) * 22,
+          width: c.measureText(text).width + 10,
+          height: size + 8,
+        };
+      });
+    const placed = placeFloatingTexts(labels, viewport);
+    this.textDiagnostics.floating = placed.map(({ number, ...box }) => box);
+    for (const box of placed) {
+      const { text, number, fontSize } = box,
+        x = box.x + box.width / 2,
+        y = box.y + box.height - 6;
+      const gold = /g$/.test(text),
+        heal = /HP|HEAL/.test(text),
+        hurt = /^[−-]/.test(text);
+      const colors = {
+        amber: ['#fff3bc', '#ff9b35'],
+        sakura: ['#ffe0ed', '#ff84b8'],
+        frost: ['#e0ffff', '#65ddff'],
+        cyber: ['#d9ffbd', '#81fa64'],
+        solar: ['#fff5a9', '#ffb435'],
+      }[skin] || ['#fff3bc', '#ff9b35'];
+      c.globalAlpha = clamp((number.life ?? 1) * 4, 0, 1);
+      c.font = `900 ${fontSize}px Arial, sans-serif`;
+      c.textAlign = 'center';
+      c.lineJoin = 'round';
+      c.lineWidth = 3.5;
+      c.strokeStyle = '#251529';
+      c.strokeText(text, x, y, box.width - 8);
+      const fill = c.createLinearGradient(0, y - fontSize, 0, y);
+      fill.addColorStop(0, heal ? '#edfff0' : gold ? '#ffec80' : hurt ? '#ffd0c9' : colors[0]);
+      fill.addColorStop(1, heal ? '#52ff9b' : gold ? '#ffc400' : hurt ? '#ff6e64' : colors[1]);
+      c.fillStyle = fill;
+      c.fillText(text, x, y, box.width - 8);
+    }
     c.restore();
   }
+
   crystal(c, x, y, size, alpha) {
     c.save();
     c.translate(x, y);
