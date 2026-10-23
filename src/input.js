@@ -14,6 +14,7 @@ const KEY_ACTIONS = {
   KeyX: 'skill2',
   KeyC: 'skill3',
   KeyV: 'skill4',
+  KeyF: 'buff',
   KeyE: 'interact',
 };
 const ACTIONS = [
@@ -28,8 +29,9 @@ const ACTIONS = [
   'skill3',
   'skill4',
   'interact',
+  'buff',
 ];
-const PULSES = new Set(['jump', 'skill', 'skill2', 'skill3', 'skill4', 'interact']);
+const PULSES = new Set(['jump', 'skill', 'skill2', 'skill3', 'skill4', 'interact', 'buff']);
 /** Separate physical sources keep one lifted finger from releasing another. */
 export function createInput(root = document) {
   const doc = root.ownerDocument || root,
