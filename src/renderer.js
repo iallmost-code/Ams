@@ -60,6 +60,13 @@ function ellipse(c, x, y, rx, ry, color, rotation = 0) {
   if (color) c.fillStyle = color;
   c.fill();
 }
+function ring(c, x, y, rx, ry, color, width = 2) {
+  c.beginPath();
+  c.ellipse(x, y, Math.max(0.01, rx), Math.max(0.01, ry), 0, 0, TAU);
+  c.strokeStyle = color;
+  c.lineWidth = width;
+  c.stroke();
+}
 function path(c, d, fill, stroke, width = 1) {
   const p = new Path2D(d);
   if (fill) {
@@ -182,6 +189,16 @@ export class Renderer {
         (!(enemy.respawnTimer > 0) || enemy.deathTimer > 0)
       )
         this.drawEnemy(enemy);
+    if (p.buffRemaining > 0) {
+      const color = {
+        vanguard: '#ffd37b',
+        arcanist: '#bdadff',
+        nightblade: '#f3a5dd',
+        ranger: '#9bf0bd',
+      }[state.classId];
+      glow(c, p.x + p.w / 2, p.y + p.h * 0.6, 42, color + '38');
+      ring(c, p.x + p.w / 2, p.y + p.h, 28, 9, color, 2);
+    }
     this.drawPlayer(p, state.classId || 'vanguard');
     if (!p.deadTimer && p.hp > 0) this.drawCompanion(p);
     for (const effect of state.effects || [])
@@ -1676,7 +1693,17 @@ export class Renderer {
     c.save();
     c.translate(effect.x || 0, effect.y || 0);
     c.globalAlpha = alpha;
-    if (kind === 'boss-meteor') {
+    if (effect.skillIndex !== undefined) {
+      this.drawClassArt(effect, progress, color);
+    } else if (kind === 'buff') {
+      glow(c, 0, 0, 75, color + '55');
+      c.rotate(progress * 2);
+      for (let i = 0; i < 8; i++) {
+        const a = (i * TAU) / 8;
+        star(c, Math.cos(a) * 45, Math.sin(a) * 22, 4, color);
+      }
+      ring(c, 0, 0, 50, 24, color, 3);
+    } else if (kind === 'boss-meteor') {
       glow(c, 0, -150, 130, '#ff572299');
       path(c, 'M -32 -330 L 25 -330 L 45 0 L -38 0 Z', '#ffe392aa');
       ellipse(c, 0, -25, 55, 40, '#ff8b35dd');
@@ -1807,6 +1834,121 @@ export class Renderer {
     }
     c.restore();
   }
+  drawClassArt(effect, progress, color) {
+    const c = this.ctx,
+      ultimate = effect.skillIndex === 3,
+      size = ultimate ? 220 : 70 + effect.skillIndex * 25,
+      pulse = Math.sin(progress * Math.PI),
+      cls = effect.classId,
+      face = effect.facing || 1;
+    c.scale(face, 1);
+    glow(c, 35, -15, size * 0.8, color + (ultimate ? '48' : '28'));
+    c.strokeStyle = color;
+    c.lineWidth = 3;
+    c.shadowColor = color;
+    c.shadowBlur = this.state.settings?.reducedMotion ? 0 : 12;
+    if (cls === 'vanguard') {
+      if (ultimate) {
+        const y = -310 + Math.min(1, progress * 2) * 260;
+        path(
+          c,
+          `M 110 ${y - 100} L 138 ${y - 65} L 129 ${y + 45} L 114 ${y + 90} L 98 ${y + 45} L 90 ${y - 65} Z`,
+          '#fff2bd',
+          '#e9ac4c',
+          4,
+        );
+        path(c, `M 75 ${y - 55} L 153 ${y - 55} L 153 ${y - 43} L 75 ${y - 43} Z`, '#e8b25a');
+        for (let i = 0; i < 3; i++)
+          ring(c, 110, 40, (40 + progress * 170) * (1 - i * 0.18), 15 + progress * 10, color, 3);
+      } else
+        for (let i = 0; i < 3 + effect.skillIndex; i++) {
+          c.save();
+          c.translate(10 + i * 12, 0);
+          c.rotate(-1 + progress * 2 + i * 0.18);
+          path(
+            c,
+            `M 5 -${size} Q ${size * 1.8} 0 5 ${size} Q ${size} 0 5 -${size}`,
+            i % 2 ? '#fff6d9' : color,
+          );
+          c.restore();
+        }
+    } else if (cls === 'arcanist') {
+      const r = size * (0.4 + pulse * 0.6);
+      for (let ring = 0; ring < 2; ring++) {
+        c.save();
+        c.rotate(progress * (ring ? 2 : -2));
+        c.beginPath();
+        c.ellipse(55, 0, r * (1 - ring * 0.22), r * 0.48, 0, 0, TAU);
+        c.stroke();
+        for (let i = 0; i < 6; i++) {
+          const a = (i * TAU) / 6;
+          const x = 55 + Math.cos(a) * r,
+            y = Math.sin(a) * r * 0.48;
+          path(c, `M ${x} ${y - 18} l 8 18 l -8 18 l -8 -18 Z`, i % 2 ? color : '#f9edff');
+        }
+        c.restore();
+      }
+      if (ultimate)
+        for (let i = 0; i < 5; i++) {
+          const x = -90 + i * 70,
+            y = -260 + progress * 290;
+          path(
+            c,
+            `M ${x - 12} ${y - 90} L ${x + 15} ${y + 10} L ${x} ${y + 35} L ${x - 18} ${y + 8} Z`,
+            '#fff1ff',
+            color,
+            3,
+          );
+        }
+    } else if (cls === 'nightblade') {
+      for (let i = 0; i < (ultimate ? 8 : 4); i++) {
+        c.save();
+        c.rotate((i * TAU) / (ultimate ? 8 : 4) + progress * 2);
+        const x = 30 + progress * size;
+        path(
+          c,
+          `M ${x} -9 Q ${x + 80} -80 ${x + 15} 30 Q ${x + 45} -15 ${x} -9`,
+          i % 2 ? color : '#f2dbff',
+        );
+        c.restore();
+      }
+      if (ultimate) {
+        c.beginPath();
+        c.arc(40, -80, 60, -1.6, 1.6);
+        c.strokeStyle = '#f4ddff';
+        c.lineWidth = 12;
+        c.stroke();
+      }
+    } else {
+      for (let i = 0; i < (ultimate ? 12 : 5); i++) {
+        const a = (i - ((ultimate ? 12 : 5) - 1) / 2) * 0.13;
+        c.save();
+        c.rotate(a);
+        const x = 20 + progress * size * 1.4;
+        path(
+          c,
+          `M ${x - 45} -2 L ${x + 10} -2 L ${x + 3} -10 L ${x + 24} 0 L ${x + 3} 10 L ${x + 10} 2 L ${x - 45} 2 Z`,
+          i % 2 ? color : '#fff7d6',
+        );
+        c.restore();
+      }
+      if (ultimate) {
+        c.save();
+        c.translate(40 + progress * 130, -55);
+        c.scale(1.6, 1.6);
+        path(
+          c,
+          'M 0 18 Q -35 -65 -100 -45 Q -70 5 -22 10 L -42 45 L 0 27 L 42 45 L 22 10 Q 70 5 100 -45 Q 35 -65 0 18 Z',
+          '#f7cd6bb0',
+          '#fff1ba',
+          2,
+        );
+        star(c, 0, 5, 12, '#fff7da');
+        c.restore();
+      }
+    }
+    c.shadowBlur = 0;
+  }
   drawParticle(particle) {
     if (!Number.isFinite(particle.x) || !Number.isFinite(particle.y)) return;
     const c = this.ctx;
@@ -1862,8 +2004,30 @@ export class Renderer {
       c.strokeStyle = '#251529';
       c.strokeText(text, x, y, box.width - 8);
       const fill = c.createLinearGradient(0, y - fontSize, 0, y);
-      fill.addColorStop(0, heal ? '#edfff0' : gold ? '#ffec80' : hurt ? '#ffd0c9' : colors[0]);
-      fill.addColorStop(1, heal ? '#52ff9b' : gold ? '#ffc400' : hurt ? '#ff6e64' : colors[1]);
+      fill.addColorStop(
+        0,
+        heal
+          ? '#edfff0'
+          : gold
+            ? '#ffec80'
+            : hurt
+              ? '#ffd0c9'
+              : number.critical
+                ? '#fff8e9'
+                : colors[0],
+      );
+      fill.addColorStop(
+        1,
+        heal
+          ? '#52ff9b'
+          : gold
+            ? '#ffc400'
+            : hurt
+              ? '#ff6e64'
+              : number.critical
+                ? '#ff783a'
+                : colors[1],
+      );
       c.fillStyle = fill;
       c.fillText(text, x, y, box.width - 8);
     }

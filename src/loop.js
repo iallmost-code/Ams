@@ -1,4 +1,4 @@
-const EDGES = ['jump', 'skill', 'skill2', 'skill3', 'skill4', 'interact'];
+const EDGES = ['jump', 'skill', 'skill2', 'skill3', 'skill4', 'interact', 'buff'];
 
 /** A render clock that preserves tap edges while advancing stable physics steps. */
 export function createFixedStepper(step, { stepSeconds = 1 / 120, maxFrameSeconds = 0.1 } = {}) {

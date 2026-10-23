@@ -41,9 +41,9 @@ Forge gold costs are `150 × 1.7^stars + 50 × stars²`, capped at 5,000,000 per
 
 ## Automated verification
 
-- `npm test`: **105 passed, 0 failed**. Includes a real one-hour fresh AUTO simulation, 35-minute hands-off AUTO-quest survival, short manual under-geared danger controls, a 15-minute paid progression smoke test, timed geared boss fight, danger in all higher areas, telegraph dodge/counterplay, healing/potion cooldowns, prices, training/saves, navigation, physics and atlas gutter bounds.
-- `npm run build`: passed; 27 modules and 13 local precached production assets, including all six painted images. Background filtering is cached rather than reapplied every frame.
-- `npm run test:e2e`: **31 passed, 0 failed**. Checks cover controls, all classes/skills/areas and portals, reload persistence, forge, shop purchases, training, mobile geometry, offline PWA and storage failure.
+- `npm test`: **118 passed, 0 failed**. Includes a real one-hour fresh AUTO simulation, 35-minute hands-off AUTO-quest survival, short manual under-geared danger controls, a 15-minute paid progression smoke test, timed geared boss fight, danger in all higher areas, telegraph dodge/counterplay, healing/potion cooldowns, prices, training/saves, navigation, physics and atlas gutter bounds.
+- `npm run build`: passed; 28 modules and 13 local precached production assets, including all six painted images. Background filtering is cached rather than reapplied every frame.
+- `npm run test:e2e`: **39 passed, 0 failed**. Checks cover controls, all classes/skills/areas and portals, reload persistence, forge, shop purchases, training, mobile geometry, offline PWA and storage failure.
 - `npm run build:html`: passed; the single HTML embeds artwork and does not register a service worker.
 - `git diff --check`: passed before commit.
 - `npm run balance`: retains the full one-hour and four-hour scenarios, with explicit assertions for progression timing, AUTO-quest survival/objective gaps and manual boss danger. Multi-hour progression is no longer repeated by `npm test`.
@@ -65,9 +65,7 @@ Additional art checks: [Crystal Cavern](qa/after-cavern.png), [Ember Altar](qa/a
 
 ## Publishing boundary
 
-This update stays on `feat/quests-auto-quest` and the existing PR #4 into `main`. **No push to `gh-pages` and no merge to main** is part of this task. `.github/workflows/pages.yml` publishes checked artifacts only on a push to main, with matching job guards. PR CI cannot deploy.
-
-GitHub reports Pages build type `workflow`; the `github-pages` environment permits **main only**. PR #3 has been merged separately, and its main-only publication succeeded. The quest feature branch has not been merged or deployed. No direct push to `gh-pages` is used.
+PR #4 was merged before this feature branch was created from latest `main` (`a243921`). This inventory update stays on `feat/inventory-tools` in a new PR into `main`. No merge or direct `gh-pages` push is part of this task. Pages publishes only from `main`; PR CI cannot deploy.
 
 ## Quest chains and AUTO-questing
 
@@ -130,3 +128,65 @@ The prior successful run spent **19 seconds in `npm test` but 6m 44s installing 
 | 390×844 portrait | [Tracker](qa/quest-tracker-portrait.png) | [Level gate](qa/quest-gate-portrait.png) | [Daily board](qa/daily-board-portrait.png) | [Journal](qa/quests-portrait.png) |
 
 Daily dungeons, additional job advancements and gear-set bonuses remain outside this installment. Physical iPhone/Android testing and a multi-hour all-chapter story playthrough remain unverified. The four-hour paid-progression benchmark is ordinary hunting, not an all-chapter quest run.
+
+
+## Inventory tools
+
+Equip Best calls the same `equipBestGear()` as AUTO, once per button press. The comparison is weapon attack / other-slot defense multiplied by `1 + stars × 0.12`; ties retain equipped gear and displaced items return to the bag. No level/class gear restrictions exist in this game's item model. Bag item stat labels now include stars, using the same scoring helper.
+
+Dismantle Low Gear runs that helper on temporary inventory/equipment containers to prepare a nonmutating quote. Confirm revalidates the quote, equips upgrades and salvages the selected spares. Cancel leaves equipment, inventory and currencies unchanged. Normal and Rare start checked; Epic is opt-in. Equipped items, forged items, locked items and non-gear items never qualify. Rewards share the single-salvage formula: 35 gold for each unstarred item and one core (Normal/Rare) or two (Epic). No reward or progression formula changed.
+
+Locks are additive to v4 item saves: only literal `true` is restored as locked, and older saves remain unlocked. Single salvage checks locks in the engine as well as disabling the UI button. Inventory locks also remain attached when equipment moves between the bag and a slot.
+
+Five unit regressions cover effective scores for all six slots, AUTO/manual parity, retaining displaced/equipped gear, preview cancellation, protected items, rarity filtering, changed-quote rejection, reward equivalence and validated save/reload migration. Two touch browser scenarios verify real stat increases, quoted reward totals and bag counts, unchanged Cancel state, empty-result toast, disabled locked salvage and locks after reload.
+
+The batch controls sit above the independently scrolling item list, with 44px minimum height. The six-slot equipped overview is collapsed under “Worn gear”; it can still be expanded in the Bag, and the Forge also shows equipped pieces. Both Bag buttons and Confirm/Cancel are fully inside the viewport without panel scrolling at 844×390 and 390×844.
+
+| Phone | Bag tools | Confirmation |
+| --- | --- | --- |
+| 844×390 | [Bag](qa/inventory-bag-landscape.png) | [Confirmation](qa/inventory-confirm-landscape.png) |
+| 390×844 | [Bag](qa/inventory-bag-portrait.png) | [Confirmation](qa/inventory-confirm-portrait.png) |
+
+The screenshots use seeded loot with ordinary gameplay values and actual touch actions against the production build. Existing balance regression scenarios still run in the unit suite; no new long simulation was added. Physical-device Safari testing remains unverified.
+
+Inventory verification: `npm test` passed all 110 tests (22.8s alongside browser checks); the full 33-test browser run passed in 2.3 minutes. The final Bag-layout rerun passed both phone scenarios in 13s. Production and standalone HTML builds passed; the standalone Chromium smoke loaded all six painted assets, started the game and recorded zero page errors or external requests.
+
+
+## RPG stats, rarity, buffs and ultimate arts
+
+This follow-up builds on unmerged inventory PR #5 on `feat/rpg-stats-skills`; the new PR targets main and must follow #5. No merge or publishing action is included.
+
+Character power is no longer hidden: STR/DEX/INT/LUK grow by class, contribute the existing +4 attack per level, and the sheet shows attack, defense, HP/MP, critical chance/damage, gear contributions and combat power. Power is a summary metric, not an additional damage multiplier. Every level also grants +2 defense, +28 HP, +7 MP and two skill points, with explicit feedback. The existing XP curve is unchanged.
+
+Five loot rarities now have actual rolls and stat differences: Normal ×0.85, Rare ×1.0, Epic ×1.12, Unique ×1.25, Mythic ×1.4 versus the previous Rare drop base. Higher-area ordinary creatures have a 1.5% Unique roll; boss drops are 70% Epic / 22% Unique / 8% Mythic. Ordinary drops retain the every-third-kill cadence. Existing stored item stats are preserved. Bag filters, rarity badges/sorting, upgrade labels, locks and shared best-gear comparison all work together.
+
+Each class has a real Lv.3 buff (15 MP, 12s active / 45s cooldown): Dawnsteel Oath (+10% attack, +20% defense), Astral Attunement (+10% attack, −25% skill MP cost), Veil of Fortune (+10% attack, +15 percentage points critical chance), Windcaller’s Focus (+10% attack, +10 points critical chance). F or the touch button casts; AUTO casts only while fighting. Timers stop with pause; buffs expire without stacking, clear on death/class change and are session-only on reload. Base critical damage is 150%; critical chance starts at 5% and grows with LUK. A separate combat RNG leaves the loot/forge RNG independent.
+
+All four class skill families have original effects; Lv.25 ultimates now deal 1,000% total attack with a 45s cooldown. The hit-line presentation groups skill totals into at most three numeric popups per enemy to avoid flooding the viewport; the displayed amounts sum exactly to damage applied. Ultimate art uses falling dawnsteel, astral crystal rain, moon scythes or a windbird arrow fan. No copied sprites, names or animations are included.
+
+### Measured progression
+
+`npm run balance` passed its timing, survival, objective-gap and boss-danger assertions. Raw output: [rpg-balance.json](qa/rpg-balance.json).
+
+| Scenario | Previous | Current |
+| --- | --- | --- |
+| Fresh AUTO → Lv.10 | 27:06 | 27:16 |
+| AUTO-quest → Lv.10 | 27:13 | 27:25 |
+| Paid progression → Lv.25 | 3:52:29 | 3:44:18 |
+| Geared boss with benchmark dodges | 2:19 | 2:16 |
+| AUTO-quest deaths in 35 min | 0 | 0 (now reaches Canopy) |
+| Starter manual boss | dies | dies |
+
+### Phone review
+
+| View | Landscape 844×390 | Portrait 390×844 |
+| --- | --- | --- |
+| Stats | [Character sheet](qa/rpg-stats-landscape.png) | [Character sheet](qa/rpg-stats-portrait.png) |
+| Rarity Bag | [Bag](qa/rpg-bag-landscape.png) | [Bag](qa/rpg-bag-portrait.png) |
+| Buff + ultimate | [Vanguard](qa/rpg-ultimate-vanguard-landscape.png) | [Vanguard](qa/rpg-ultimate-vanguard-portrait.png) |
+
+Additional ultimate captures: [Arcanist](qa/rpg-ultimate-arcanist-landscape.png), [Nightblade](qa/rpg-ultimate-nightblade-landscape.png), [Ranger](qa/rpg-ultimate-ranger-landscape.png). Screenshots use seeded level-25 progress and actual keyboard/touch UI actions, not early-game balance claims. Physical-device Safari testing remains unverified.
+
+Additional safety: area readiness uses permanent attack/defense, so a temporary buff cannot qualify an under-geared character for a harder map. The quick-buff-tap regression covers frames with no physics step. The final full suite also runs the embedded standalone HTML with no network, checking all six artwork files and the new RPG controls.
+
+RPG verification: `npm test` passed all **118 tests**; the full **39-test** browser suite passed in **2.4 minutes**, including the portable HTML smoke. Dedicated new phone cases cover all four buffs/ultimates, portrait touch casting, rarity/category views and non-overlapping timer/banner lanes. Rank-30 skills show MAX RANK and disable further upgrades. Production and standalone builds passed, retaining thirteen local precached assets.

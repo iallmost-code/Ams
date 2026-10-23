@@ -1,3 +1,14 @@
+import {
+  BUFFS,
+  BUFF_DURATION,
+  BUFF_COOLDOWN,
+  BUFF_LEVEL,
+  BUFF_MP,
+  growthStats,
+  combatPower,
+  lootRarity,
+  RARITIES,
+} from './rpg.js';
 import { gearScore, areaReadiness } from './auto.js';
 export { areaReadiness } from './auto.js';
 import { normalizeDaily, refreshDailyBounties, getDailyView, recordDailyDefeat } from './daily.js';
@@ -105,12 +116,14 @@ function definitions(id) {
   return SKILL_NAMES[id].map((name, i) => ({
     name,
     mp: [12, 20, 32, 45][i],
-    cd: [4.5, 8, 12, 19][i],
+    cd: [4.5, 8, 12, 45][i],
+    hits: [3, 5, 7, 12][i],
+    ultimate: i === 3,
     reqLv: [1, 1, 10, 25][i],
     range: c.range + [70, 110, 150, 220][i],
-    damage: [1.85, 2.7, 3.8, 5.5][i],
+    damage: [1.85, 2.7, 3.8, 10][i],
     style: ['slash', 'burst', 'nova', 'ultimate'][i],
-    description: `${name} deals ${[185, 270, 380, 550][i]}% attack damage${i > 1 ? ' in an aether burst' : '.'}`,
+    description: `${name} deals ${[185, 270, 380, 1000][i]}% total attack across ${[3, 5, 7, 12][i]} hits${i > 1 ? ' in an aether burst' : '.'}`,
   }));
 }
 function recalculate(s, heal = false) {
@@ -118,17 +131,27 @@ function recalculate(s, heal = false) {
     c = CLASS_DEFS.find((c) => c.id === s.classId),
     oldHp = p.maxHp || c.hp,
     oldMp = p.maxMp || c.mp;
-  let attack = c.attack + (p.level - 1) * 4,
+  const growth = growthStats(s.classId, p.level);
+  p.attributes = growth.attributes;
+  p.mainAttribute = growth.main;
+  let attack = c.attack + growth.attackGrowth,
     defense = c.defense + (p.level - 1) * 2;
   for (const item of Object.values(p.equipment)) {
     if (!item) continue;
     attack += (item.attack || 0) * (1 + (item.stars || 0) * 0.12);
     defense += (item.defense || 0) * (1 + (item.stars || 0) * 0.12);
   }
-  p.attack = Math.round(attack + (s.upgrades?.mastery || 0) * 4);
-  p.defense = Math.round(defense);
+  const buff = p.buffRemaining > 0 ? BUFFS[s.classId] : {};
+  p.baseAttack = Math.round(attack + (s.upgrades?.mastery || 0) * 4);
+  p.baseDefense = Math.round(defense);
+  p.attack = Math.round(p.baseAttack * (buff.attack || 1));
+  p.defense = Math.round(defense * (buff.defense || 1));
+  p.critRate = Math.min(0.35, 0.05 + (p.attributes.LUK - 4) * 0.001) + (buff.crit || 0);
+  p.critDamage = 1.5;
+  p.manaCostMultiplier = buff.mana || 1;
   p.maxHp = c.hp + (p.level - 1) * 28 + (s.upgrades?.vitality || 0) * 25;
   p.maxMp = c.mp + (p.level - 1) * 7;
+  p.combatPower = combatPower(p);
   p.attackRange = c.range;
   p.hp = heal ? p.maxHp : clamp(p.hp + (p.maxHp - oldHp), 0, p.maxHp);
   p.mp = heal ? p.maxMp : clamp(p.mp + (p.maxMp - oldMp), 0, p.maxMp);
@@ -175,7 +198,8 @@ function advance(s) {
     recalculate(s, true);
     floating(s, center(p), p.y - 30, `LEVEL ${p.level}!`, '#9ff2c8');
     effect(s, 'levelup', center(p), p.y, { life: 1, maxLife: 1 });
-    notice(s, `Level ${p.level} · +2 skill points`);
+    notice(s, `Level ${p.level} · +4 ATK · +2 DEF · +28 HP · +2 skill points`);
+    s.levelUpSummary = { level: p.level, attack: 4, defense: 2, hp: 28, mp: 7, remaining: 5 };
   }
   unlock(s);
 }
@@ -263,6 +287,8 @@ export function createGame(progress = null, now = new Date()) {
     attackAnimation: 0,
     skillTimer: 0,
     skillAnimation: 0,
+    buffRemaining: 0,
+    buffCooldown: 0,
     skillCooldowns: [0, 0, 0, 0],
     combo: 0,
     comboTimer: 0,
@@ -374,8 +400,11 @@ export function equipBestGear(s) {
   for (const item of s.player.inventory)
     if (SLOTS.includes(item.type) && gearScore(item) > gearScore(best[item.type]))
       best[item.type] = item;
+  const upgraded = [];
   for (const slot of SLOTS)
-    if (best[slot] && best[slot] !== s.player.equipment[slot]) equipItem(s, best[slot].id);
+    if (best[slot] && best[slot] !== s.player.equipment[slot] && equipItem(s, best[slot].id))
+      upgraded.push(slot);
+  return upgraded;
 }
 function autoSurvivalInput(s) {
   const p = s.player;
@@ -598,7 +627,9 @@ export function changeClass(s, id) {
   if (!CLASS_DEFS.some((c) => c.id === id)) return false;
   s.classId = id;
   recalculate(s);
+  s.player.buffRemaining = 0;
   s.player.skillCooldowns = [0, 0, 0, 0];
+  recalculate(s);
   notice(s, `${s.classes.find((c) => c.id === id).name} awakened`);
   return true;
 }
@@ -662,12 +693,78 @@ export function forgeItem(s, slot, timing) {
   notice(s, message);
   return { success, message };
 }
+/** One reward formula for single salvage and batch quotes. */
+export function salvageRewards(item) {
+  return {
+    gold: 35 + (item.stars || 0) * 20,
+    cores: ['epic', 'unique', 'mythic'].includes(item.rarity) ? 2 : 1,
+  };
+}
+export function toggleItemLock(s, id) {
+  const item = s.player.inventory.find((i) => i.id === id);
+  if (!item) return false;
+  item.locked = !item.locked;
+  return true;
+}
+/** Run the real equip helper on isolated player containers. Preview/cancel never mutate play. */
+export function previewDismantle(s, rarities = ['normal', 'rare']) {
+  const draft = {
+    ...s,
+    player: {
+      ...s.player,
+      inventory: [...s.player.inventory],
+      equipment: { ...s.player.equipment },
+    },
+  };
+  equipBestGear(draft);
+  const items = draft.player.inventory.filter(
+    (i) =>
+      SLOTS.includes(i.type) &&
+      !i.locked &&
+      !(i.stars > 0) &&
+      rarities.includes(i.rarity || 'normal') &&
+      !Object.values(draft.player.equipment).some((e) => e?.id === i.id) &&
+      draft.player.equipment[i.type] &&
+      gearScore(i) <= gearScore(draft.player.equipment[i.type]),
+  );
+  return {
+    ids: items.map((i) => i.id),
+    rarities: [...rarities],
+    ...items.reduce(
+      (sum, i) => {
+        const r = salvageRewards(i);
+        return { gold: sum.gold + r.gold, cores: sum.cores + r.cores };
+      },
+      { gold: 0, cores: 0 },
+    ),
+  };
+}
+export function dismantleLowGear(s, quote) {
+  const current = previewDismantle(s, quote?.rarities || []);
+  if (!quote?.ids?.length || JSON.stringify(current) !== JSON.stringify(quote)) {
+    notice(s, 'Gear changed. Review dismantling again.');
+    return { count: 0, gold: 0, cores: 0 };
+  }
+  equipBestGear(s);
+  for (const id of current.ids) salvageItem(s, id);
+  notice(
+    s,
+    `Dismantled ${current.ids.length} items · +${current.gold} gold · +${current.cores} star cores`,
+  );
+  return { count: current.ids.length, gold: current.gold, cores: current.cores };
+}
 export function salvageItem(s, id) {
   const index = s.player.inventory.findIndex((i) => i.id === id);
-  if (index < 0 || !SLOTS.includes(s.player.inventory[index].type)) return false;
+  if (
+    index < 0 ||
+    !SLOTS.includes(s.player.inventory[index].type) ||
+    s.player.inventory[index].locked
+  )
+    return false;
   const [item] = s.player.inventory.splice(index, 1);
-  s.player.gold += 35 + (item.stars || 0) * 20;
-  s.starCores += ['epic', 'unique', 'mythic'].includes(item.rarity) ? 2 : 1;
+  const rewards = salvageRewards(item);
+  s.player.gold += rewards.gold;
+  s.starCores += rewards.cores;
   notice(s, `${item.name} salvaged`);
   return true;
 }
@@ -782,17 +879,19 @@ function reward(s, e) {
   });
   if (s.kills % 3 === 0 || e.isBoss) {
     const slot = SLOTS[((s.kills / 3) | 0) % SLOTS.length];
+    const rarity = lootRarity(random(s), e.isBoss, e.areaRank || 0),
+      multiplier = RARITIES[rarity].multiplier;
     const item = {
       id: `loot-${s.nextId++}`,
       name: `${['Glade', 'Canopy', 'Crystal', 'Ember'][Math.min(3, Math.floor(e.x / 1200))]} ${slot === 'weapon' ? 'Blade' : slot[0].toUpperCase() + slot.slice(1)}`,
       type: slot,
-      rarity: e.isBoss ? 'epic' : 'rare',
+      rarity,
       icon: slot === 'weapon' ? '⚔' : '✧',
       count: 1,
       stars: 0,
       ...(slot === 'weapon'
-        ? { attack: 13 + e.level * 3 }
-        : { defense: 4 + Math.ceil(e.level * 1.5) }),
+        ? { attack: Math.round((13 + e.level * 3) * multiplier) }
+        : { defense: Math.round((4 + Math.ceil(e.level * 1.5)) * multiplier) }),
     };
     s.drops.push({
       id: `drop-${s.nextId++}`,
@@ -810,7 +909,7 @@ function reward(s, e) {
   if (e.isBoss) s.starCores += 5;
   effect(s, 'defeat', center(e), e.y + e.h / 2, { life: 0.6, maxLife: 0.6 });
 }
-function hitEnemies(s, damage, range, style, aoe = false) {
+function hitEnemies(s, damage, range, style, aoe = false, hits = 1) {
   const p = s.player;
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
@@ -822,23 +921,32 @@ function hitEnemies(s, damage, range, style, aoe = false) {
       (!aoe && dx * p.facing < -e.w / 4)
     )
       continue;
-    const amount = Math.max(1, Math.round(damage));
+    s.combatSeed = (Math.imul(1664525, s.combatSeed ?? 38192) + 1013904223) >>> 0;
+    const critical = s.combatSeed / 4294967296 < p.critRate;
+    const amount = Math.max(1, Math.round(damage * (critical ? p.critDamage : 1)));
     e.hp = Math.max(0, e.hp - amount);
     e.hitTimer = 0.22;
     e.knockbackVx = (center(e) < center(p) ? -1 : 1) * (e.isBoss ? 30 : 155);
     e.knockbackTimer = 0.15;
-    floating(
-      s,
-      center(e),
-      e.y - 5,
-      amount,
-      s.damageSkin === 'frost' ? '#a1eaff' : s.damageSkin === 'sakura' ? '#ff9fca' : '#ffe5a0',
-    );
+    // Split the actual damage total into readable lines; no extra phantom damage.
+    for (let line = 0; line < Math.min(hits, 3, amount); line++) {
+      const count = Math.min(hits, 3, amount),
+        value = Math.floor(amount / count) + (line < amount % count ? 1 : 0);
+      floating(
+        s,
+        center(e) + (line % 2) * 12,
+        e.y - 5 - line * 21,
+        value,
+        critical ? '#ffb079' : '#ffe5a0',
+      );
+      s.numbers.at(-1).critical = critical;
+    }
     if (e.hp <= 0) reward(s, e);
   }
 }
 function combat(s, input) {
   const p = s.player;
+  if (input.buff) castBuff(s);
   if (input.attack && p.attackTimer <= 0 && !p.climbing) {
     p.combo = p.comboTimer > 0 ? (p.combo % 3) + 1 : 1;
     p.comboTimer = 1.4;
@@ -859,19 +967,19 @@ function combat(s, input) {
     if (
       !input[key] ||
       p.skillCooldowns[i] > 0 ||
-      p.mp < def.mp ||
+      p.mp < Math.ceil(def.mp * p.manaCostMultiplier) ||
       p.level < def.reqLv ||
       p.climbing
     )
       continue;
-    p.mp -= def.mp;
+    p.mp -= Math.ceil(def.mp * p.manaCostMultiplier);
     p.skillCooldowns[i] = def.cd;
     p.skillTimer = 0.55;
     p.skillAnimation = 0.55;
     p.activeSkill = i;
     effect(s, def.style, center(p), p.y + p.h * 0.4, {
-      life: 0.6,
-      maxLife: 0.6,
+      life: i === 3 ? 1.6 : 0.75,
+      maxLife: i === 3 ? 1.6 : 0.75,
       range: def.range,
       classId: s.classId,
       skillIndex: i,
@@ -882,8 +990,22 @@ function combat(s, input) {
       def.range,
       def.style,
       i >= 2,
+      def.hits,
     );
+    if (i === 3) s.ultimateBanner = { name: def.name, remaining: 1.8, classId: s.classId };
   }
+}
+export function castBuff(s) {
+  const p = s.player;
+  if (p.hp <= 0 || p.level < BUFF_LEVEL || p.buffCooldown > 0 || p.mp < BUFF_MP || p.climbing)
+    return false;
+  p.mp -= BUFF_MP;
+  p.buffRemaining = BUFF_DURATION;
+  p.buffCooldown = BUFF_COOLDOWN;
+  recalculate(s);
+  effect(s, 'buff', center(p), p.y + p.h * 0.6, { classId: s.classId, life: 1, maxLife: 1 });
+  notice(s, `${BUFFS[s.classId].name} · ${BUFF_DURATION}s`);
+  return true;
 }
 function damagePlayer(s, amount, sourceX = center(s.player) + 1) {
   const p = s.player;
@@ -1482,6 +1604,13 @@ function frame(s, raw, dt) {
   s.time += dt;
   if (p.statLevel !== p.level) recalculate(s);
   s.noticeTimer = Math.max(0, s.noticeTimer - dt);
+  for (const banner of [s.levelUpSummary, s.ultimateBanner])
+    if (banner) banner.remaining = Math.max(0, banner.remaining - dt);
+  p.buffCooldown = Math.max(0, p.buffCooldown - dt);
+  if (p.buffRemaining > 0) {
+    p.buffRemaining = Math.max(0, p.buffRemaining - dt);
+    if (!p.buffRemaining) recalculate(s);
+  }
   advance(s);
   for (const key of [
     'potionCooldown',
@@ -1503,6 +1632,8 @@ function frame(s, raw, dt) {
     }
   if (p.hp <= 0) {
     if (p.deadTimer <= 0) {
+      p.buffRemaining = 0;
+      recalculate(s);
       s.deaths++;
       if (s.story.autoQuest) {
         s.story.autoQuest = false;
@@ -1542,7 +1673,8 @@ function frame(s, raw, dt) {
     ? { ...(survival || (s.story.autoQuest ? autoQuestInput(s, dt) : autoInput(s, dt))) }
     : { ...raw };
   if (raw.attack) input.attack = true;
-  for (const key of ['skill', 'skill2', 'skill3', 'skill4']) {
+  if (usingAuto && !survival && input.attack && p.buffCooldown <= 0) input.buff = true;
+  for (const key of ['skill', 'skill2', 'skill3', 'skill4', 'buff']) {
     if (raw[key] && !s.previousInput[key]) input[key] = true;
     else if (!usingAuto) input[key] = false;
   }

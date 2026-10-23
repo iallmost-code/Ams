@@ -24,6 +24,9 @@ import {
   toggleAutoQuest,
   talkToNpc,
   salvageItem,
+  equipBestGear,
+  toggleItemLock,
+  dismantleLowGear,
 } from './game/engine.js';
 import { Renderer } from './renderer.js';
 import { createInput } from './input.js';
@@ -202,6 +205,27 @@ async function onAction(action, payload) {
       break;
     case 'buy-upgrade':
       buyUpgrade(state, payload);
+      persist();
+      break;
+    case 'equip-best': {
+      const slots = equipBestGear(state);
+      notify(
+        slots.length
+          ? `Equipped ${slots.length} upgrades · ${slots.join(', ')}`
+          : 'Already wearing your best gear',
+      );
+      persist();
+      break;
+    }
+    case 'lock-item':
+      toggleItemLock(state, payload);
+      persist();
+      break;
+    case 'nothing-dismantle':
+      notify('Nothing to dismantle');
+      break;
+    case 'dismantle-low':
+      dismantleLowGear(state, payload);
       persist();
       break;
     case 'salvage':
