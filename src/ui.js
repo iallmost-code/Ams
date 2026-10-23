@@ -1,3 +1,6 @@
+import { BUFFS, BUFF_LEVEL, BUFF_MP, BUFF_DURATION, BUFF_COOLDOWN, RARITIES } from './game/rpg.js';
+import { previewDismantle } from './game/engine.js';
+import { gearScore } from './game/auto.js';
 import { getDailyView } from './game/daily.js';
 import { getStoryView, STORY_QUESTS } from './game/quests.js';
 import { forgeCost, upgradeCost, POTION_PRICE } from './game/balance.js';
@@ -18,6 +21,7 @@ const PATHS = {
   leaf: 'M20 3C3 1 1 15 8 19c9 5 14-8 12-16ZM4 22 17 7',
   gear: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM10 2h4l1 4 4 1 3 3v4l-4 1-1 4-3 3h-4l-1-4-4-1-3-3v-4l4-1 1-4Z',
   coin: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4v12m4-9c-1-3-8-2-7 1s7 1 7 4-6 4-8 1',
+  lock: 'M6 10V7a6 6 0 0 1 12 0v3M4 10h16v12H4Zm8 5v3',
   helmet: 'M4 15v-4a8 8 0 0 1 16 0v4M3 15h18v6h-6l-3-5-3 5H3Zm9-12v9',
 };
 const icon = (name, extra = '') =>
@@ -47,7 +51,10 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     frame,
     dead = false,
     portraitTipShown = false,
-    portraitTipTimer;
+    portraitTipTimer,
+    dismantleQuote = null,
+    dismantleRarities = ['normal', 'rare'],
+    bagTab = 'all';
   root.innerHTML = `
     <div class="top-hud">
       <button class="identity glass" data-action="character" aria-label="Open character"><span class="portrait">${icon('sword')}</span><span class="identity-copy"><b>Aether</b><span class="class-name">Vanguard · Adventurer</span><span class="vital hp"><i></i><span data-testid="hp">100 / 100</span></span><span class="vital mp"><i></i><span>60 / 60</span></span></span><span class="level-badge" data-testid="level">1</span></button>
@@ -59,6 +66,9 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     <div class="notice" role="status" aria-live="polite"></div>
     <div class="portrait-tip" hidden>${icon('map')} More room to explore in landscape</div>
     <div class="bottom-hud"><div class="movement"><div class="joystick" data-joystick role="group" aria-label="Movement joystick"><div class="joystick-ring"></div><span class="joystick-thumb"></span><span class="joystick-label">MOVE · CLIMB</span></div><span class="key-hint">W A S D · MOVE</span></div><div class="bottom-center"><button class="auto-button" data-action="auto" aria-pressed="false"><span class="auto-dot"></span>AUTO <small>OFF</small></button><div class="pet-status" aria-live="off"><b>✦ PIP</b><span>Auto loot · Heal ready</span></div><div class="utility-controls"><button data-control="interact" aria-label="Collect or interact">${icon('leaf')}<span>Collect <kbd>E</kbd></span></button><button data-action="potion" aria-label="Use health potion">${icon('potion')}<span class="potion-count">3</span></button></div><div class="save-indicator" data-status="pending" role="status" aria-live="polite"><i></i><span>SAVE PENDING</span></div></div><div class="combat-controls"><div class="skill-wheel">${[0, 1, 2, 3].map((i) => `<button class="skill skill-${i}" data-control="${i ? `skill${i + 1}` : 'skill'}" aria-label="Skill ${i + 1}"><span class="skill-glyph">${icon(['sword', 'spark', 'star', 'leaf'][i])}</span><span class="skill-cooldown"></span><span class="skill-key">${['Z', 'X', 'C', 'V'][i]}</span><span class="skill-level"></span></button>`).join('')}</div><button class="jump-button" data-control="jump" aria-label="Jump">${icon('jump')}<small>JUMP</small></button><button class="attack-button" data-control="attack" aria-label="Attack">${icon('sword')}<span>ATTACK</span><kbd>J</kbd></button></div></div>
+    <div class="buff-deck"><button class="buff-button glass" data-control="buff" aria-label="Activate class buff"><span>✦</span><b>BUFF</b><small>F</small></button><div class="active-buff glass" hidden><b></b><span></span><i></i></div></div>
+    <div class="ultimate-banner" hidden><small>ULTIMATE ART</small><strong></strong></div>
+    <div class="level-growth glass" hidden></div>
     <div class="experience"><i></i><span>LEVEL 1 · 0 / 100 XP</span></div>
     <div class="modal-layer"><section class="modal" role="dialog" aria-modal="true" aria-label="Adventure menu" tabindex="-1"></section></div>`;
   const $ = (selector) => root.querySelector(selector),
@@ -104,20 +114,42 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       node(
         'small',
         '',
-        `${title(item?.rarity || 'normal')} ${title(item?.type)}${item?.stars ? ` · ★${item.stars}` : ''}${item?.attack ? ` · +${item.attack} ATK` : ''}${item?.defense ? ` · +${item.defense} DEF` : ''}${item?.count > 1 ? ` · ×${item.count}` : ''}`,
+        `${title(item?.rarity || 'normal')} ${title(item?.type)}${item?.stars ? ` · ★${item.stars}` : ''}${slots.includes(item?.type) ? ` · +${Number(gearScore(item).toFixed(2))} ${item.type === 'weapon' ? 'ATK' : 'DEF'}` : ''}${item?.count > 1 ? ` · ×${item.count}` : ''}`,
       ),
     );
+    const badge = node(
+      'span',
+      `rarity-badge rarity-${item.rarity || 'normal'}`,
+      title(item.rarity || 'normal'),
+    );
+    copy.append(badge);
+    if (!equipped && slots.includes(item.type)) {
+      const upgrade = gearScore(item) > gearScore(state.player.equipment[item.type]);
+      copy.append(
+        node(
+          'small',
+          upgrade ? 'gear-upgrade' : 'gear-spare',
+          upgrade ? '↑ Stat upgrade' : 'Spare gear',
+        ),
+      );
+    }
     row.append(glyph, copy);
     if (equipped) row.append(node('span', 'equipped-label', 'Equipped'));
     else if (item.type === 'potion')
       row.append(actionButton('potion', 'Use', undefined, 'small-button'));
-    else {
+    else if (slots.includes(item.type)) {
       const actions = node('div', 'item-actions');
-      actions.append(
-        actionButton('equip', 'Equip', item.id, 'small-button'),
-        actionButton('salvage', 'Salvage', item.id, 'text-button'),
-      );
+      const salvage = actionButton('salvage', 'Salvage', item.id, 'text-button');
+      salvage.disabled = Boolean(item.locked);
+      actions.append(actionButton('equip', 'Equip', item.id, 'small-button'), salvage);
       row.append(actions);
+    }
+    if (!equipped) {
+      const lock = actionButton('lock-item', '', item.id, 'item-lock');
+      lock.innerHTML = icon('lock');
+      lock.setAttribute('aria-label', `${item.locked ? 'Unlock' : 'Lock'} ${item.name}`);
+      lock.setAttribute('aria-pressed', String(Boolean(item.locked)));
+      row.append(lock);
     }
     return row;
   }
@@ -388,6 +420,62 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       }
       body.append(list);
     } else if (panel === 'inventory') {
+      if (dismantleQuote) {
+        body.classList.add('dismantle-body');
+        body.append(node('h2', '', 'Review dismantling'));
+        const filters = node('fieldset', 'rarity-filters');
+        filters.append(node('legend', '', 'Include rarities'));
+        for (const rarity of ['normal', 'rare', 'epic']) {
+          const label = node('label', ''),
+            input = node('input', '');
+          input.type = 'checkbox';
+          input.dataset.rarity = rarity;
+          input.checked = dismantleRarities.includes(rarity);
+          label.append(input, document.createTextNode(title(rarity)));
+          filters.append(label);
+        }
+        body.append(
+          filters,
+          node(
+            'p',
+            'dismantle-summary',
+            `Dismantle ${dismantleQuote.ids.length} items for ${dismantleQuote.gold} gold + ${dismantleQuote.cores} star cores?`,
+          ),
+          node('p', '', 'Equip Best runs first. Starred, locked and non-gear items stay safe.'),
+        );
+        const actions = node('div', 'bag-toolbar');
+        const confirm = actionButton('confirm-dismantle', 'Confirm', undefined, 'primary');
+        confirm.disabled = !dismantleQuote.ids.length;
+        actions.append(actionButton('cancel-dismantle', 'Cancel'), confirm);
+        body.append(actions);
+        return;
+      }
+      const tools = node('div', 'bag-toolbar');
+      tools.append(
+        actionButton('equip-best', 'Equip Best', undefined, 'primary'),
+        actionButton('dismantle-low', 'Dismantle Low Gear'),
+      );
+      body.append(
+        tools,
+        node(
+          'p',
+          'bag-stats',
+          `Attack ${p.attack} · Defense ${p.defense} · ${p.inventory.length} bag items`,
+        ),
+      );
+      const tabs = node('nav', 'bag-tabs');
+      tabs.setAttribute('aria-label', 'Bag categories');
+      for (const [id, label] of [
+        ['all', 'All items'],
+        ['weapon', 'Weapons'],
+        ['armor', 'Armor'],
+        ['potion', 'Tonics'],
+      ]) {
+        const tab = actionButton('bag-tab', label, id, bagTab === id ? 'selected' : '');
+        tab.setAttribute('aria-pressed', String(bagTab === id));
+        tabs.append(tab);
+      }
+      body.append(tabs);
       const equipment = node('div', 'equipment-grid');
       for (const slot of slots) {
         const item = p.equipment?.[slot],
@@ -398,29 +486,83 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
           glyph,
           node('small', '', title(slot)),
           node('b', '', item ? item.name : 'Empty'),
-          node('span', 'slot-stars', item?.stars ? `★ ${item.stars}` : ''),
+          node(
+            'span',
+            'slot-stars',
+            item
+              ? `${title(item.rarity)} · ${Number(gearScore(item).toFixed(2))} ${slot === 'weapon' ? 'ATK' : 'DEF'}${item.stars ? ` · ★${item.stars}` : ''}`
+              : 'Find an upgrade',
+          ),
         );
         equipment.append(cell);
       }
+      const worn = node('details', 'worn-gear');
+      worn.append(node('summary', '', 'Worn gear · 6 slots'), equipment);
       body.append(
         actionButton('shop', 'Visit supply shop', undefined, 'secondary'),
-        equipment,
+        worn,
         node('h2', 'section-title', 'IN THE SATCHEL'),
       );
       const list = node('div', 'item-list');
-      for (const item of p.inventory || []) list.append(itemRow(item));
-      if (!p.inventory?.length)
-        list.append(node('p', 'empty-state', 'Room for your next discovery.'));
+      const filtered = (p.inventory || [])
+        .filter(
+          (i) =>
+            bagTab === 'all' ||
+            (bagTab === 'armor'
+              ? slots.includes(i.type) && i.type !== 'weapon'
+              : i.type === bagTab),
+        )
+        .sort(
+          (a, b) =>
+            Object.keys(RARITIES).indexOf(b.rarity) - Object.keys(RARITIES).indexOf(a.rarity) ||
+            gearScore(b) - gearScore(a),
+        );
+      for (const item of filtered) list.append(itemRow(item));
+      if (!filtered.length) list.append(node('p', 'empty-state', 'Room for your next discovery.'));
       body.append(list);
     } else if (panel === 'character') {
       const hero = node('div', 'character-banner');
       hero.innerHTML = `${icon('class')}<div><h2>Aether</h2><p></p></div>`;
       hero.querySelector('p').textContent = `${title(state.classId)} · Level ${p.level || 1}`;
-      body.append(hero);
+      body.append(
+        hero,
+        node('div', 'power-banner', `COMBAT POWER  ${amount(p.combatPower)}`),
+        node('p', 'growth-note', 'Every level: +4 ATK · +2 DEF · +28 HP · +7 MP · +2 skill points'),
+      );
+      const attributes = node('div', 'attribute-grid');
+      for (const [key, value] of Object.entries(p.attributes || {})) {
+        const cell = node('div', key === p.mainAttribute ? 'main-attribute' : '');
+        cell.append(
+          node('small', '', key + (key === p.mainAttribute ? ' · MAIN' : '')),
+          node('b', '', value),
+        );
+        attributes.append(cell);
+      }
+      body.append(attributes);
       const stats = node('div', 'stat-grid');
       for (const [label, value] of [
         ['Attack', p.attack],
         ['Defense', p.defense],
+        ['Critical chance', `${(p.critRate * 100).toFixed(1)}%`],
+        ['Critical damage', `${Math.round(p.critDamage * 100)}%`],
+        [
+          'Gear attack',
+          Math.round(
+            Object.values(p.equipment).reduce(
+              (sum, i) => sum + (i?.attack || 0) * (1 + (i?.stars || 0) * 0.12),
+              0,
+            ),
+          ),
+        ],
+        [
+          'Gear defense',
+          Math.round(
+            Object.values(p.equipment).reduce(
+              (sum, i) => sum + (i?.defense || 0) * (1 + (i?.stars || 0) * 0.12),
+              0,
+            ),
+          ),
+        ],
         ['Health', `${amount(p.hp)} / ${amount(p.maxHp)}`],
         ['Mana', `${amount(p.mp)} / ${amount(p.maxMp)}`],
         ['Creatures defeated', state.kills],
@@ -435,7 +577,8 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       }
       body.append(
         stats,
-        actionButton('class', 'Change class', undefined, 'primary'),
+        actionButton('inventory', 'Equipment & bag', undefined, 'primary'),
+        actionButton('class', 'Change class', undefined, 'secondary'),
         actionButton('skin', 'Damage signatures', undefined, 'secondary skin-menu'),
       );
     } else if (panel === 'class') {
@@ -506,6 +649,18 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       });
       body.append(map);
     } else if (panel === 'skills') {
+      const buff = BUFFS[state.classId],
+        card = node('article', 'buff-card');
+      card.append(
+        node('div', 'eyebrow', 'CLASS BUFF · F'),
+        node('h2', '', buff.name),
+        node(
+          'p',
+          '',
+          `${buff.detail} · ${BUFF_DURATION}s duration · ${BUFF_COOLDOWN}s cooldown · ${BUFF_MP} MP · Lv.${BUFF_LEVEL}`,
+        ),
+      );
+      body.append(card);
       const list = node('div', 'skill-list');
       (state.skillDefinitions || []).forEach((skill, index) => {
         const locked = n(p.level) < n(skill.reqLv),
@@ -514,21 +669,29 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         glyph.innerHTML = icon(['sword', 'spark', 'star', 'leaf'][index]);
         const copy = node('div', '');
         copy.append(
-          node('h2', '', `${skill.name} · ${Math.max(1, n(state.skillLevels?.[index]))}`),
+          node(
+            'h2',
+            '',
+            `${skill.ultimate ? '✦ ULTIMATE · ' : ''}${skill.name} · ${Math.max(1, n(state.skillLevels?.[index]))}`,
+          ),
           node('p', '', skill.description || 'Channel your aether into a powerful strike.'),
           node(
             'small',
             '',
-            `${amount(skill.mp)} MP · ${skill.cd}s cooldown · Level ${skill.reqLv || 1}`,
+            `${Math.ceil(skill.mp * (p.manaCostMultiplier || 1))} MP · ${skill.cd}s cooldown · Lv.${skill.reqLv || 1} · ${Math.round(skill.damage * (1 + (Math.max(1, n(state.skillLevels?.[index])) - 1) * 0.15) * 100)}% total → ${state.skillLevels[index] >= 30 ? 'MAX RANK' : `${Math.round(skill.damage * (1 + Math.max(1, n(state.skillLevels?.[index])) * 0.15) * 100)}% next rank`}`,
           ),
         );
         const upgrade = actionButton(
           'upgrade-skill',
-          locked ? `Lv. ${skill.reqLv}` : 'Upgrade · 1 SP',
+          locked
+            ? `Lv. ${skill.reqLv}`
+            : state.skillLevels[index] >= 30
+              ? 'MAX RANK'
+              : 'Upgrade · 1 SP',
           index,
           'small-button',
         );
-        upgrade.disabled = locked || n(state.sp) < 1;
+        upgrade.disabled = locked || n(state.sp) < 1 || state.skillLevels[index] >= 30;
         row.append(glyph, copy, upgrade);
         list.append(row);
       });
@@ -658,6 +821,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
   function showPanel(name, nextState) {
     if (nextState) state = nextState;
     panel = name;
+    dismantleQuote = null;
     panelKey = '';
     forgeRunning = false;
     forgeAttempted = false;
@@ -678,6 +842,35 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     if (!target || target.disabled) return;
     const action = target.dataset.action,
       payload = target._payload;
+    if (action === 'bag-tab') {
+      bagTab = payload;
+      renderPanel();
+      return;
+    }
+    if (action === 'dismantle-low') {
+      dismantleRarities = ['normal', 'rare'];
+      const quote = previewDismantle(state, dismantleRarities);
+      if (!quote.ids.length) dispatch('nothing-dismantle');
+      else {
+        dismantleQuote = quote;
+        renderPanel();
+        modal.scrollTop = 0;
+        modal.focus();
+      }
+      return;
+    }
+    if (action === 'cancel-dismantle') {
+      dismantleQuote = null;
+      renderPanel();
+      return;
+    }
+    if (action === 'confirm-dismantle') {
+      const quote = dismantleQuote;
+      dismantleQuote = null;
+      dispatch('dismantle-low', quote);
+      renderPanel();
+      return;
+    }
     if (action === 'toggle-minimap') {
       onSettings({ ...state.settings, minimapCollapsed: !state.settings.minimapCollapsed });
       return;
@@ -707,6 +900,15 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     dispatch(action, payload);
   };
   const change = (event) => {
+    const rarity = event.target.dataset.rarity;
+    if (rarity) {
+      dismantleRarities = event.target.checked
+        ? [...dismantleRarities, rarity]
+        : dismantleRarities.filter((r) => r !== rarity);
+      dismantleQuote = previewDismantle(state, dismantleRarities);
+      renderPanel();
+      return;
+    }
     const key = event.target.dataset.setting;
     if (key) onSettings({ ...(state?.settings || {}), [key]: event.target.checked });
   };
@@ -842,6 +1044,29 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     const potions = (p.inventory || [])
       .filter((item) => item.type === 'potion')
       .reduce((sum, item) => sum + (item.count || 1), 0);
+    const buff = BUFFS[state.classId],
+      cooldown = p.buffCooldown || 0,
+      remaining = p.buffRemaining || 0;
+    const buffButton = $('.buff-button');
+    buffButton.disabled = p.level < BUFF_LEVEL || cooldown > 0 || p.mp < BUFF_MP;
+    buffButton.setAttribute(
+      'aria-label',
+      `${buff.name}${p.level < BUFF_LEVEL ? ` locked until level ${BUFF_LEVEL}` : cooldown > 0 ? ` cooldown ${Math.ceil(cooldown)} seconds` : ' ready'}`,
+    );
+    buffButton.querySelector('b').textContent =
+      p.level < BUFF_LEVEL ? `Lv.${BUFF_LEVEL}` : cooldown > 0 ? `${Math.ceil(cooldown)}s` : 'BUFF';
+    $('.active-buff').hidden = remaining <= 0;
+    setText('.active-buff b', buff.name);
+    setText('.active-buff span', `${remaining.toFixed(1)}s · ${buff.detail}`);
+    $('.active-buff i').style.width = `${(remaining / BUFF_DURATION) * 100}%`;
+    $('.ultimate-banner').hidden = !(state.ultimateBanner?.remaining > 0);
+    setText('.ultimate-banner strong', state.ultimateBanner?.name || '');
+    $('.level-growth').hidden =
+      !(state.levelUpSummary?.remaining > 0) || state.ultimateBanner?.remaining > 0;
+    setText(
+      '.level-growth',
+      `LEVEL ${state.levelUpSummary?.level || p.level}  ↑  +4 ATK · +2 DEF · +28 HP`,
+    );
     setText('.potion-count', potions);
     $('[data-action="potion"]').disabled = potions < 1 || p.hp >= p.maxHp;
     setText('.notice', state.notice || '');
@@ -850,7 +1075,18 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       const skill = state.skillDefinitions?.[index],
         locked = p.level < n(skill?.reqLv || [1, 1, 10, 25][index]),
         cooldown = n(p.skillCooldowns?.[index]);
-      el.disabled = locked || cooldown > 0 || p.mp < n(skill?.mp);
+      const classGlyphs = {
+        vanguard: ['sword', 'forge', 'class', 'star'],
+        arcanist: ['spark', 'leaf', 'star', 'spark'],
+        nightblade: ['sword', 'spark', 'leaf', 'star'],
+        ranger: ['arrow', 'leaf', 'spark', 'star'],
+      };
+      if (el.dataset.classId !== state.classId) {
+        el.querySelector('.skill-glyph').innerHTML = icon(classGlyphs[state.classId][index]);
+        el.dataset.classId = state.classId;
+      }
+      el.disabled =
+        locked || cooldown > 0 || p.mp < Math.ceil(n(skill?.mp) * (p.manaCostMultiplier || 1));
       el.classList.toggle('locked', locked);
       el.classList.toggle('cooling', cooldown > 0);
       el.style.setProperty('--cooldown', `${skill?.cd ? (cooldown / skill.cd) * 100 : 0}%`);
@@ -864,13 +1100,14 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         : `${Math.max(1, n(state.skillLevels?.[index]))}`;
       el.setAttribute(
         'aria-label',
-        `${skill?.name || `Skill ${index + 1}`}${locked ? ` locked until level ${skill?.reqLv}` : cooldown > 0 ? ` cooldown ${cooldown.toFixed(1)} seconds` : ''}`,
+        `${skill?.ultimate ? 'Ultimate ' : ''}${skill?.name || `Skill ${index + 1}`}${locked ? ` locked until level ${skill?.reqLv}` : cooldown > 0 ? ` cooldown ${cooldown.toFixed(1)} seconds` : ''}`,
       );
     });
     drawMinimap(state);
     if (panel && panel !== 'start') {
       const key = JSON.stringify([
         panel,
+        bagTab,
         p.level,
         p.gold,
         p.attack,

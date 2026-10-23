@@ -46,6 +46,7 @@ function item(value, slot) {
   };
   for (const key of ['attack', 'defense'])
     if (value[key] !== undefined) result[key] = number(value[key], 0, 100000, 0);
+  if (value.locked === true) result.locked = true;
   if (value.stars !== undefined) result.stars = number(value.stars, 0, 25, 0);
   return result;
 }

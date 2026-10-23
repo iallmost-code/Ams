@@ -11,5 +11,9 @@ export const AREA_READINESS = {
 };
 export function areaReadiness(state, id) {
   const needed = AREA_READINESS[id];
-  return !!needed && state.player.attack >= needed.attack && state.player.defense >= needed.defense;
+  return (
+    !!needed &&
+    (state.player.baseAttack ?? state.player.attack) >= needed.attack &&
+    (state.player.baseDefense ?? state.player.defense) >= needed.defense
+  );
 }

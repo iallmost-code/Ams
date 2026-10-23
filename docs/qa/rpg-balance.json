@@ -1,0 +1,257 @@
+{
+  "freshStarterAuto": {
+    "seconds": 3600,
+    "level": 12,
+    "gold": 25819,
+    "kills": 1963,
+    "deaths": 0,
+    "timeTo10": 1636,
+    "timeTo25": null,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 7,
+        "gold": 4512,
+        "deaths": 0
+      },
+      "900": {
+        "level": 8,
+        "gold": 6592,
+        "deaths": 0
+      },
+      "1800": {
+        "level": 10,
+        "gold": 12845,
+        "deaths": 0
+      },
+      "3600": {
+        "level": 12,
+        "gold": 25819,
+        "deaths": 0
+      }
+    }
+  },
+  "autoQuestToTen": {
+    "seconds": 1645,
+    "autoQuest": true,
+    "currentArea": "emerald_glade",
+    "firstCanopyAt": null,
+    "attack": 76,
+    "defense": 69,
+    "timeTo10": 1645,
+    "firstThreeAt": 66,
+    "maxObjectiveGap": 168,
+    "deaths": 0,
+    "level": 10,
+    "gladeCompleted": 8,
+    "dailyClaims": 3,
+    "dailyProgress": 0,
+    "dailyStatus": "finished",
+    "storyStatus": "Travel to Whispering Canopy",
+    "milestones": [
+      {
+        "second": 29,
+        "quest": "glade-jellies",
+        "level": 2
+      },
+      {
+        "second": 55,
+        "quest": "glade-spores",
+        "level": 2
+      },
+      {
+        "second": 66,
+        "quest": "glade-watchlight",
+        "level": 2
+      },
+      {
+        "second": 135,
+        "quest": "glade-pathfinders",
+        "level": 3
+      },
+      {
+        "second": 306,
+        "quest": "glade-wick",
+        "level": 5
+      },
+      {
+        "second": 415,
+        "quest": "glade-signal",
+        "level": 6
+      },
+      {
+        "second": 895,
+        "quest": "glade-gloamcap",
+        "level": 8
+      },
+      {
+        "second": 1291,
+        "quest": "glade-farewell",
+        "level": 9
+      }
+    ]
+  },
+  "autoQuest35Minutes": {
+    "seconds": 2100,
+    "autoQuest": true,
+    "currentArea": "whispering_canopy",
+    "firstCanopyAt": 1647,
+    "attack": 101,
+    "defense": 122,
+    "timeTo10": 1645,
+    "firstThreeAt": 66,
+    "maxObjectiveGap": 368,
+    "deaths": 0,
+    "level": 10,
+    "gladeCompleted": 8,
+    "dailyClaims": 3,
+    "dailyProgress": 0,
+    "dailyStatus": "finished",
+    "storyStatus": "Next: Echoes of the wardens \u00b7 Lv.16 \u00b7 train on the lantern trail",
+    "milestones": [
+      {
+        "second": 29,
+        "quest": "glade-jellies",
+        "level": 2
+      },
+      {
+        "second": 55,
+        "quest": "glade-spores",
+        "level": 2
+      },
+      {
+        "second": 66,
+        "quest": "glade-watchlight",
+        "level": 2
+      },
+      {
+        "second": 135,
+        "quest": "glade-pathfinders",
+        "level": 3
+      },
+      {
+        "second": 306,
+        "quest": "glade-wick",
+        "level": 5
+      },
+      {
+        "second": 415,
+        "quest": "glade-signal",
+        "level": 6
+      },
+      {
+        "second": 895,
+        "quest": "glade-gloamcap",
+        "level": 8
+      },
+      {
+        "second": 1291,
+        "quest": "glade-farewell",
+        "level": 9
+      },
+      {
+        "second": 1676,
+        "quest": "canopy-trail",
+        "level": 10
+      },
+      {
+        "second": 1723,
+        "quest": "canopy-essence",
+        "level": 10
+      },
+      {
+        "second": 1733,
+        "quest": "canopy-beacon",
+        "level": 10
+      }
+    ]
+  },
+  "progressionWithPurchases": {
+    "seconds": 14400,
+    "level": 25,
+    "gold": 91135,
+    "kills": 4753,
+    "deaths": 0,
+    "timeTo10": 1660,
+    "timeTo25": 13458,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 7,
+        "gold": 1421,
+        "deaths": 0,
+        "goldSpent": 6705
+      },
+      "900": {
+        "level": 8,
+        "gold": 2014,
+        "deaths": 0,
+        "goldSpent": 9973
+      },
+      "1800": {
+        "level": 10,
+        "gold": 1038,
+        "deaths": 0,
+        "goldSpent": 23650
+      },
+      "3600": {
+        "level": 15,
+        "gold": 2861,
+        "deaths": 0,
+        "goldSpent": 57517
+      }
+    },
+    "goldSpent": 178836,
+    "upgrades": {
+      "vitality": 6,
+      "mastery": 6
+    },
+    "area": "crystal_cavern"
+  },
+  "starterGearBossArena": {
+    "seconds": 3600,
+    "level": 20,
+    "gold": 300,
+    "kills": 0,
+    "deaths": 1,
+    "timeTo10": null,
+    "timeTo25": null,
+    "firstBossKill": null,
+    "checkpoints": {
+      "600": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      },
+      "900": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      },
+      "1800": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      },
+      "3600": {
+        "level": 20,
+        "gold": 300,
+        "deaths": 1
+      }
+    }
+  },
+  "manualStarterBoss": {
+    "deaths": 1,
+    "bossKilled": false
+  },
+  "gearedBossWithDodges": {
+    "killed": 136.03333333333333,
+    "deaths": 0,
+    "hp": 912,
+    "maxHp": 912,
+    "attack": 278,
+    "defense": 253,
+    "bossHp": 0,
+    "hits": 0
+  }
+}
