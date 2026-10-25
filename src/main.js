@@ -1,3 +1,4 @@
+import { RELEASE_VERSION } from './release.js';
 import './style.css';
 import { artReady, artStatus } from './art.js';
 import {
@@ -27,6 +28,9 @@ import {
   equipBestGear,
   toggleItemLock,
   dismantleLowGear,
+  allocateAttribute,
+  resetAttributes,
+  upgradeMastery,
 } from './game/engine.js';
 import { Renderer } from './renderer.js';
 import { createInput } from './input.js';
@@ -207,6 +211,26 @@ async function onAction(action, payload) {
       buyUpgrade(state, payload);
       persist();
       break;
+    case 'apply-update':
+      persist();
+      window.location.reload();
+      break;
+    case 'allocate-attribute':
+      allocateAttribute(state, payload.stat, payload.amount);
+      persist();
+      break;
+    case 'assign-main-stat':
+      allocateAttribute(state, state.player.mainAttribute, state.player.ap);
+      persist();
+      break;
+    case 'reset-attributes':
+      resetAttributes(state);
+      persist();
+      break;
+    case 'upgrade-mastery':
+      upgradeMastery(state);
+      persist();
+      break;
     case 'equip-best': {
       const slots = equipBestGear(state);
       notify(
@@ -288,6 +312,14 @@ window.aetherStory = Object.freeze({
       starCores: state.starCores,
       sp: state.sp,
       skillLevels: state.skillLevels,
+      masteryRank: state.masteryRank,
+      attributeAllocation: state.attributeAllocation,
+      effects: state.effects.map(({ type, classId, skillIndex, life }) => ({
+        type,
+        classId,
+        skillIndex,
+        life,
+      })),
       settings: state.settings,
       unlockedAreas: state.unlockedAreas,
       player: state.player,
@@ -311,7 +343,7 @@ window.aetherStory = Object.freeze({
   },
   getDiagnostics() {
     return {
-      version: '1.0.0',
+      version: RELEASE_VERSION,
       text: structuredClone(renderer.textDiagnostics || { nameplates: [], floating: [] }),
       art: artStatus(),
       fps,
@@ -468,6 +500,10 @@ if (
   import.meta.env.VITE_SINGLE_FILE !== 'true' &&
   'serviceWorker' in navigator
 ) {
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) ui.showUpdate();
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
       console.warn('Offline installation is unavailable:', error.message);

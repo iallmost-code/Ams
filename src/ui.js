@@ -1,4 +1,14 @@
-import { BUFFS, BUFF_LEVEL, BUFF_MP, BUFF_DURATION, BUFF_COOLDOWN, RARITIES } from './game/rpg.js';
+import { RELEASE_VERSION, RELEASE_NAME } from './release.js';
+import {
+  BUFFS,
+  BUFF_LEVEL,
+  BUFF_MP,
+  BUFF_DURATION,
+  BUFF_COOLDOWN,
+  RARITIES,
+  ATTRIBUTE_DETAILS,
+  MASTERY_NAMES,
+} from './game/rpg.js';
 import { previewDismantle } from './game/engine.js';
 import { gearScore } from './game/auto.js';
 import { getDailyView } from './game/daily.js';
@@ -59,7 +69,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     <div class="top-hud">
       <button class="identity glass" data-action="character" aria-label="Open character"><span class="portrait">${icon('sword')}</span><span class="identity-copy"><b>Aether</b><span class="class-name">Vanguard · Adventurer</span><span class="vital hp"><i></i><span data-testid="hp">100 / 100</span></span><span class="vital mp"><i></i><span>60 / 60</span></span></span><span class="level-badge" data-testid="level">1</span></button>
       <div class="journey"><div class="brand">AETHERSTORY <small>M</small></div><span>CHRONICLES OF AETHERIA</span><div class="area-pill">${icon('leaf')}<b class="area-name">Emerald Glade</b><i></i><span>FIELD</span></div></div>
-      <div class="top-right"><div class="wallet"><span>${icon('coin')}<b class="gold" data-testid="gold">300</b></span><span>${icon('star')}<b class="cores">5</b></span></div><nav class="quick-nav" aria-label="Adventure menus">${button('quests', 'Quests', 'bag')}${button('map', 'Map', 'map')}${button('shop', 'Shop', 'coin')}${button('inventory', 'Bag', 'bag')}${button('forge', 'Forge', 'forge')}${button('skills', 'Skills', 'spark')}${button('class', 'Class', 'class')}${button('pause', 'Pause', 'pause', 'aria-label="Pause game"')}</nav></div>
+      <div class="top-right"><div class="wallet"><span>${icon('coin')}<b class="gold" data-testid="gold">300</b></span><span>${icon('star')}<b class="cores">5</b></span></div><nav class="quick-nav" aria-label="Adventure menus">${button('quests', 'Quests', 'bag')}${button('map', 'Map', 'map')}${button('shop', 'Shop', 'coin')}${button('inventory', 'Bag', 'bag')}${button('character', 'Stats', 'class')}${button('forge', 'Forge', 'forge')}${button('skills', 'Skills', 'spark')}${button('class', 'Class', 'class')}${button('pause', 'Pause', 'pause', 'aria-label="Pause game"')}</nav></div>
     </div>
     <aside class="field-info"><button class="minimap-toggle glass" data-action="toggle-minimap" aria-label="Toggle mini-map" aria-expanded="false">${icon('map')}<span>MINI-MAP</span></button><button class="minimap glass" data-action="map" aria-label="Open world map"><canvas width="190" height="70" aria-hidden="true"></canvas><span class="map-caption">EMERALD GLADE ${icon('map')}</span></button><div class="quest glass"><div class="eyebrow">THE LANTERN TRAIL</div><b class="story-title"></b><p class="quest-progress"></p><div><button data-action="quests">Journal</button><button data-action="follow-quest">Follow</button></div><div class="quest-line"><i></i></div></div></aside>
     <div class="story-strip glass"><button data-action="quests"><b class="story-strip-title"></b><small class="story-strip-progress"></small></button><button data-action="follow-quest">Follow</button></div>
@@ -70,6 +80,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     <div class="ultimate-banner" hidden><small>ULTIMATE ART</small><strong></strong></div>
     <div class="level-growth glass" hidden></div>
     <div class="experience"><i></i><span>LEVEL 1 · 0 / 100 XP</span></div>
+    <button class="update-ready glass" data-action="apply-update" hidden>Update ready · Restart game</button>
     <div class="modal-layer"><section class="modal" role="dialog" aria-modal="true" aria-label="Adventure menu" tabindex="-1"></section></div>`;
   const $ = (selector) => root.querySelector(selector),
     $$ = (selector) => [...root.querySelectorAll(selector)];
@@ -332,7 +343,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     if (!panel) return;
     modal.className = `modal panel-${panel}`;
     if (panel === 'start') {
-      modal.innerHTML = `<div class="start-emblem">${icon('leaf')}<span>✦</span></div><div class="eyebrow">A LITTLE WONDER. A GRAND ADVENTURE.</div><h1>AetherStory <em>M</em></h1><div class="start-subtitle">CHRONICLES OF AETHERIA</div><div class="start-rule"><span>✦</span></div><p>Beyond the familiar path,<br>your story is waiting.</p><button data-action="start" class="enter-button">Enter Aetheria ${icon('arrow')}</button><div class="start-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>SPACE</kbd> Jump</span><span><kbd>J</kbd> Attack</span><span><kbd>Z X C V</kbd> Skills</span></div><div class="start-foot">${icon('class')} Touch controls · Four classes · Play offline<br><span>Progress saves locally when browser storage is available.</span></div>`;
+      modal.innerHTML = `<div class="start-emblem">${icon('leaf')}<span>✦</span></div><div class="eyebrow">A LITTLE WONDER. A GRAND ADVENTURE.</div><h1>AetherStory <em>M</em></h1><div class="start-subtitle">CHRONICLES OF AETHERIA</div><div class="start-rule"><span>✦</span></div><p>Beyond the familiar path,<br>your story is waiting.</p><button data-action="start" class="enter-button">Enter Aetheria ${icon('arrow')}</button><div class="start-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>SPACE</kbd> Jump</span><span><kbd>J</kbd> Attack</span><span><kbd>Z X C V</kbd> Skills</span></div><div class="start-foot">${icon('class')} Touch controls · Four classes · Play offline<br><span>Progress saves locally when browser storage is available.<br>v${RELEASE_VERSION} · ${RELEASE_NAME}</span></div>`;
       return;
     }
     const p = state?.player || {},
@@ -365,7 +376,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
           skills: `${amount(state?.sp)} skill points available · Master the arts of your class.`,
           skins: 'Choose how your hits light up the forest.',
           pause: 'Your adventure is paused. Take your time.',
-          settings: 'Preferences are saved on this device.',
+          settings: `v${RELEASE_VERSION} · ${RELEASE_NAME} · Preferences are saved on this device.`,
           offline: 'Your AUTO expedition has returned. Rewards are already added to your save.',
         }[panel] || '',
       );
@@ -405,7 +416,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       list.append(tonic);
       for (const [type, label, detail] of [
         ['vitality', 'Vitality', '+25 maximum HP per rank'],
-        ['mastery', 'Weapon mastery', '+4 attack per rank'],
+        ['mastery', 'Weapon training', '+4 attack per rank'],
       ]) {
         const row = node('article', 'shop-row'),
           rank = state.upgrades?.[type] || 0;
@@ -413,7 +424,12 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
           node('h2', '', `${label} · ${rank}/10`),
           node('p', '', `${detail} · ${amount(upgradeCost(rank))} gold`),
         );
-        const train = actionButton('buy-upgrade', `Train ${type}`, type, 'small-button');
+        const train = actionButton(
+          'buy-upgrade',
+          `Train ${type === 'mastery' ? 'weapon' : type}`,
+          type,
+          'small-button',
+        );
         train.disabled = rank >= 10 || p.gold < upgradeCost(rank);
         row.append(train);
         list.append(row);
@@ -527,15 +543,66 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       body.append(
         hero,
         node('div', 'power-banner', `COMBAT POWER  ${amount(p.combatPower)}`),
-        node('p', 'growth-note', 'Every level: +4 ATK · +2 DEF · +28 HP · +7 MP · +2 skill points'),
+        node(
+          'p',
+          'growth-note',
+          'Level up: +5 AP and +2 SP, plus permanent attack, defense, HP and MP growth. Spend AP to build your character.',
+        ),
       );
+      const core = node('div', 'character-core');
+      for (const [label, value] of [
+        ['ATTACK', p.attack],
+        ['DEFENSE', p.defense],
+        ['MAX HP', p.maxHp],
+        ['MAX MP', p.maxMp],
+      ]) {
+        const cell = node('div', '');
+        cell.append(node('small', '', label), node('b', '', amount(value)));
+        core.append(cell);
+      }
+      body.append(core);
+      const apbar = node('section', 'ap-toolbar');
+      apbar.append(node('strong', '', `${p.ap} AP available`));
+      const assign = actionButton(
+        'assign-main-stat',
+        `Auto assign → ${p.mainAttribute}`,
+        undefined,
+        'primary',
+      );
+      assign.disabled = p.ap < 1;
+      const reset = actionButton('reset-attributes', 'Reset assigned AP');
+      reset.disabled = !Object.values(state.attributeAllocation).some(Boolean);
+      apbar.append(assign, reset);
+      body.append(apbar);
       const attributes = node('div', 'attribute-grid');
       for (const [key, value] of Object.entries(p.attributes || {})) {
         const cell = node('div', key === p.mainAttribute ? 'main-attribute' : '');
         cell.append(
-          node('small', '', key + (key === p.mainAttribute ? ' · MAIN' : '')),
+          node(
+            'small',
+            '',
+            key +
+              (key === p.mainAttribute
+                ? ' · MAIN'
+                : key === p.secondaryAttribute
+                  ? ' · SECONDARY'
+                  : ''),
+          ),
           node('b', '', value),
+          node(
+            'small',
+            'attribute-detail',
+            `${key === p.mainAttribute ? 'Base attack +1.23 · ' : key === p.secondaryAttribute ? 'Base attack +0.31 · ' : ''}${ATTRIBUTE_DETAILS[key]}`,
+          ),
         );
+        const plus = actionButton(
+          'allocate-attribute',
+          `+ ${key}`,
+          { stat: key, amount: 1 },
+          'attribute-plus',
+        );
+        plus.disabled = p.ap < 1;
+        cell.append(plus);
         attributes.append(cell);
       }
       body.append(attributes);
@@ -544,7 +611,14 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         ['Attack', p.attack],
         ['Defense', p.defense],
         ['Critical chance', `${(p.critRate * 100).toFixed(1)}%`],
-        ['Critical damage', `${Math.round(p.critDamage * 100)}%`],
+        ['Critical damage', `${(p.critDamage * 100).toFixed(1)}%`],
+        ['Attack speed', `${(p.attackSpeed * 100).toFixed(1)}%`],
+        ['Skill damage', `${(p.skillDamageMultiplier * 100).toFixed(1)}%`],
+        [
+          'Damage range',
+          `${Math.floor(p.attack * p.minDamageMultiplier)}–${Math.ceil(p.attack * p.maxDamageMultiplier)}`,
+        ],
+        ['Mastery rank', `${state.masteryRank}/20`],
         [
           'Gear attack',
           Math.round(
@@ -649,6 +723,27 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       });
       body.append(map);
     } else if (panel === 'skills') {
+      const mastery = node('article', 'mastery-card');
+      mastery.append(
+        node('div', 'eyebrow', `PASSIVE · ${state.sp} SP AVAILABLE`),
+        node('h2', '', `${MASTERY_NAMES[state.classId]} · ${state.masteryRank}/20`),
+        node(
+          'p',
+          '',
+          `Each rank: +2% attack · +1% skill damage · higher minimum damage. Current floor: ${(p.minDamageMultiplier * 100).toFixed(1)}%. Shared across your class choices.`,
+        ),
+      );
+      const train = actionButton(
+        'upgrade-mastery',
+        state.masteryRank >= 20
+          ? 'Mastery MAX'
+          : `${state.masteryRank ? 'Train' : 'Learn'} Mastery · 1 SP`,
+        undefined,
+        'primary',
+      );
+      train.disabled = state.sp < 1 || state.masteryRank >= 20;
+      mastery.append(train);
+      body.append(mastery, node('h2', 'section-title', 'BUFFS & ACTIVE ARTS'));
       const buff = BUFFS[state.classId],
         card = node('article', 'buff-card');
       card.append(
@@ -678,7 +773,7 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
           node(
             'small',
             '',
-            `${Math.ceil(skill.mp * (p.manaCostMultiplier || 1))} MP · ${skill.cd}s cooldown · Lv.${skill.reqLv || 1} · ${Math.round(skill.damage * (1 + (Math.max(1, n(state.skillLevels?.[index])) - 1) * 0.15) * 100)}% total → ${state.skillLevels[index] >= 30 ? 'MAX RANK' : `${Math.round(skill.damage * (1 + Math.max(1, n(state.skillLevels?.[index])) * 0.15) * 100)}% next rank`}`,
+            `${Math.ceil(skill.mp * (p.manaCostMultiplier || 1))} MP · ${skill.cd}s cooldown · Lv.${skill.reqLv || 1} · ${Math.round(skill.damage * (1 + (Math.max(1, n(state.skillLevels?.[index])) - 1) * 0.15) * p.skillDamageMultiplier * 100)}% total → ${state.skillLevels[index] >= 30 ? 'MAX RANK' : `${Math.round(skill.damage * (1 + Math.max(1, n(state.skillLevels?.[index])) * 0.15) * p.skillDamageMultiplier * 100)}% next rank`}`,
           ),
         );
         const upgrade = actionButton(
@@ -1065,8 +1160,15 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
       !(state.levelUpSummary?.remaining > 0) || state.ultimateBanner?.remaining > 0;
     setText(
       '.level-growth',
-      `LEVEL ${state.levelUpSummary?.level || p.level}  ↑  +4 ATK · +2 DEF · +28 HP`,
+      `LEVEL ${state.levelUpSummary?.level || p.level} ↑ +${state.levelUpSummary?.attack || 0} ATK · +${state.levelUpSummary?.hp || 0} HP · +${state.levelUpSummary?.mp || 0} MP · +5 AP`,
     );
+    const statsNav = $('.quick-nav [data-action="character"]');
+    if (statsNav) {
+      statsNav.classList.toggle('points-ready', p.ap > 0);
+      statsNav.querySelector('span').textContent = p.ap ? `Stats +${p.ap}` : 'Stats';
+    }
+    const skillNav = $('.quick-nav [data-action="skills"]');
+    if (skillNav) skillNav.classList.toggle('points-ready', state.sp > 0);
     setText('.potion-count', potions);
     $('[data-action="potion"]').disabled = potions < 1 || p.hp >= p.maxHp;
     setText('.notice', state.notice || '');
@@ -1109,6 +1211,9 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
         panel,
         bagTab,
         p.level,
+        p.ap,
+        state.attributeAllocation,
+        state.masteryRank,
         p.gold,
         p.attack,
         p.defense,
@@ -1180,6 +1285,9 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     },
     isModalOpen() {
       return Boolean(panel) || !started;
+    },
+    showUpdate() {
+      $('.update-ready').hidden = false;
     },
     setInstallPrompt(event) {
       installPrompt = event;

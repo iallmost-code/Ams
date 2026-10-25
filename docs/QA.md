@@ -190,3 +190,53 @@ Additional ultimate captures: [Arcanist](qa/rpg-ultimate-arcanist-landscape.png)
 Additional safety: area readiness uses permanent attack/defense, so a temporary buff cannot qualify an under-geared character for a harder map. The quick-buff-tap regression covers frames with no physics step. The final full suite also runs the embedded standalone HTML with no network, checking all six artwork files and the new RPG controls.
 
 RPG verification: `npm test` passed all **118 tests**; the full **39-test** browser suite passed in **2.4 minutes**, including the portable HTML smoke. Dedicated new phone cases cover all four buffs/ultimates, portrait touch casting, rarity/category views and non-overlapping timer/banner lanes. Rank-30 skills show MAX RANK and disable further upgrades. Production and standalone builds passed, retaining thirteen local precached assets.
+
+
+## v1.1.0: spendable attributes, passive mastery and painted primary skills
+
+This update runs on `feat/real-attributes-mastery`, based on current main. The reference investigation is documented in [REFERENCE_REVIEW.md](REFERENCE_REVIEW.md).
+
+Every level grants 5 AP and 2 SP. Main/secondary attributes contribute at a 4:1 ratio, normalized by 3.25 so automatic 3-main/1-secondary growth keeps the prior four base attack per level before new investments. All four attributes have real additional combat effects: STR +2 max HP / +0.2 defense per point; DEX +0.1% attack speed (25% cap) / +0.05 percentage points critical chance; INT +3 max MP / +0.1% skill damage; LUK +0.1 points critical chance / +0.2 points critical damage. Damage/skill/critical values and attack cooldowns consume these attributes directly.
+
+Stats offers individual spending, recommended main-stat assignment and reset. Available AP is derived from `(level−1)×5 − assigned`, never trusted from a saved counter. Old saves receive their earned points; malformed or over-budget allocation is rejected. Save v4 remains compatible through optional additive fields. Learned mastery costs one shared SP per rank, up to 20 ranks, and raises base attack 2%, skill damage 1% and minimum damage by 0.5 percentage points per rank. Normal damage rolls range from 90–110% before mastery. Shop gold training remains separate.
+
+Level-up summaries report measured attack, HP and MP deltas rather than fixed labels. Example with starter equipment, reaching Lv.2, assigning its 5 AP to the main stat and learning mastery rank 1:
+
+| Class | Attack Lv.1 → built Lv.2 | Max HP | Max MP |
+| --- | --- | --- | --- |
+| Vanguard | 31 → 42 | 180 → 224 | 75 → 82 |
+| Arcanist | 34 → 45 | 135 → 163 | 135 → 166 |
+| Nightblade | 35 → 46 | 145 → 173 | 95 → 102 |
+| Ranger | 32 → 43 | 155 → 185 | 105 → 112 |
+
+Raw examples: [attribute-growth-example.json](qa/attribute-growth-example.json). AP and mastery tests also compare actual enemy HP loss, not only displayed values.
+
+### Skills and sprite sheet
+
+`src/assets/skills.png` is a 1536×1024 RGBA sheet with four rows × five frames, generated as original painted effects. It animates the four primary arts with continuous movement and crossfades; other slots add original class-specific lightning, ground eruptions, shuriken, rain and ultimate choreography. Actual victims receive timed impact art. Runtime skill tiles are alpha-centered and padded before sampling, including fractional 307.2-pixel column boundaries. The source PNG is currently unchanged from the generator; a separate pixel-clean export pass awaits the user's method preference. Screenshot frames are paused with Playwright's clock after real casts to capture the short animation accurately; damage and cooldowns still come from the real engine.
+
+The fixed-step buffer now preserves edges even for zero/negative render-clock deltas immediately after menu close. This fixes the intermittent lost buff key rather than adding arbitrary delays or retries. Version 1.1.0 is visible in Settings/title; an update-ready button preserves saves and restarts an already-installed client when its controller changes.
+
+### Balance
+
+The unchanged real-engine benchmark passed its assertions. It does not spend the new optional AP/mastery points automatically; its previous gear/gold policy is retained. Raw report: [attributes-mastery-balance.json](qa/attributes-mastery-balance.json).
+
+| Scenario | Previous | Current |
+| --- | --- | --- |
+| Fresh AUTO → Lv.10 | 27:16 | 27:20 |
+| AUTO-quest → Lv.10 | 27:25 | 27:07 |
+| Gear/gold progression → Lv.25 | 3:44:18 | 3:31:55 |
+| Geared boss + benchmark dodges | 2:16 | 2:16 |
+| AUTO-quest deaths in 35 min | 0 | 0 |
+| Manual starter gear versus boss | dies | dies |
+
+### Verification and phone captures
+
+`npm test`: 126 passed. Production build and standalone HTML export passed. `npm run test:e2e`: 45 passed in 2.9 minutes locally, including actual point spending, passive learning, reload, all four early-skill effects, installed-client update handling and the seven-artwork portable export. Full multi-hour balance checks remain outside CI's unit suite. Physical iPhone/Safari performance remains unverified.
+
+| Phone | Real attribute assignment | Learned mastery | Painted early combat |
+| --- | --- | --- | --- |
+| 844×390 | [Stats](qa/attribute-stats-landscape.png) | [Mastery](qa/mastery-landscape.png) | [Vanguard](qa/early-combat-vanguard-landscape.png) |
+| 390×844 | [Stats](qa/attribute-stats-portrait.png) | [Mastery](qa/mastery-portrait.png) | [Vanguard](qa/early-combat-vanguard-portrait.png) |
+
+Other low-level combat: [Arcanist](qa/early-combat-arcanist-landscape.png), [Nightblade](qa/early-combat-nightblade-landscape.png), [Ranger](qa/early-combat-ranger-landscape.png). These screenshots use actual Lv.2 characters with their earned five AP and two SP; no late-game skill unlocks are granted for the early-skill pictures.

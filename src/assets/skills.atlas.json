@@ -1,0 +1,25 @@
+{
+  "image": "skills.png",
+  "width": 1536,
+  "height": 1024,
+  "columns": 5,
+  "rows": 4,
+  "cellWidth": 307.2,
+  "cellHeight": 256,
+  "frameDurationMs": 150,
+  "frames": [
+    "start",
+    "growing",
+    "full-power",
+    "breaking-apart",
+    "fading-sparkles"
+  ],
+  "rowByClass": {
+    "vanguard": 0,
+    "arcanist": 1,
+    "nightblade": 2,
+    "ranger": 3
+  },
+  "direction": "right",
+  "runtimeGutter": 12
+}

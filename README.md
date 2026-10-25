@@ -41,7 +41,11 @@ Move with **A/D** or **←/→**. Climb ropes/ladders with **W/S** or **↑/↓*
 
 **Rowan’s daily board** offers three shared bounties per local calendar day, accessible at any area’s guide. Hunts in all areas count, including story hunts. Accept and claim near a guide; the 25/50/100-kill goals award gold, cores, tonics and 2%/3%/5% of the current next-level XP requirement. The board resets at local midnight, and saved claims cannot be paid twice after reload. AUTO-quest reserves a short bounty for each longer story level gate; you can accept early from any guide.
 
-**Character growth:** The character sheet shows combat power, STR / DEX / INT / LUK, critical chance/damage, gear contributions and current attack/defense. Each level increases attack by 4, defense by 2, HP by 28 and MP by 7, with a visible gain summary. Class buffs last 12 seconds with a 45-second cooldown; AUTO uses them during combat. Ultimate arts unlock at Lv.25, deal 1,000% total attack damage and have original animations for each class.
+**Character growth:** Every level grants **5 spendable AP** and **2 SP**, plus automatic class growth and larger HP/MP pools. Open **Stats** (or P), tap +STR / +DEX / +INT / +LUK, or use Auto assign for your main stat. Damage uses a **4:1 main/secondary stat** ratio, scaled to the existing world. STR also gives HP/defense, DEX attack speed/critical chance, INT MP/skill damage, and LUK critical chance/damage. Old saves receive all unspent earned AP. Assignment and reset cannot create extra points.
+
+**Passive mastery:** Open Skills (U) and learn your class’s mastery with SP. Each of 20 ranks increases attack by 2%, skill damage by 1%, and the minimum damage roll; active skills use the same SP pool. Mastery and assigned attributes save locally. The shop’s older gold upgrade is called Weapon training to distinguish it from the learned passive.
+
+**Painted combat:** The four primary skills animate an original transparent 5×4 effect sheet: golden crescent slash, purple/cyan orb, violet shadow strike and emerald wind arrow. Other arts add class-specific lightning, pillars, vortices and barrages. Real hit impacts appear on targets. Buffs unlock at Lv.3 (F) and ultimates at Lv.25 (V).
 
 **Equipment rarity:** Normal / Rare / Epic / Unique / Mythic gear has distinct colors and real stat differences. Ordinary monsters can drop up to Epic (Unique in higher areas); bosses guarantee Epic or better with a chance of Mythic. The Bag has category filters, rarity sorting, upgrade indicators and a six-slot worn-gear overview.
 
@@ -55,7 +59,7 @@ The four classes are Vanguard, Arcanist, Nightblade and Ranger. First and second
 
 Visit **Shop** for 90-gold tonics (45% HP, 10-second cooldown), vitality training (+25 max HP/rank), and weapon mastery (+4 attack/rank). Training costs 250 × (next rank)²; each path has ten ranks. Forge costs rise exponentially with stars, and failed attempts still cost gold and cores. Armor reduces incoming damage but cannot make the hero immune.
 
-Fresh-account AUTO reaches level 10 in about 27 minutes; the measured AUTO-quest route takes about 27 minutes. A reproducible policy that equips loot, salvages spare gear, buys training/tonics and forges gear reaches level 25 in about 3 hours 44 minutes. The boss uses a 150,000 HP fight with **SHOCKWAVE · JUMP** and **METEOR · MOVE** warnings; AUTO is not a substitute for dodging. See the measured scenarios and gear assumptions in [QA](docs/QA.md). Existing saves retain their level; new fields default safely and area access follows the new level gates.
+Fresh-account AUTO reaches level 10 in about 27 minutes; the measured AUTO-quest route takes about 27 minutes. A reproducible policy that equips loot, salvages spare gear, buys training/tonics and forges gear reaches level 25 in about 3 hours 32 minutes. The boss uses a 150,000 HP fight with **SHOCKWAVE · JUMP** and **METEOR · MOVE** warnings; AUTO is not a substitute for dodging. See the measured scenarios and gear assumptions in [QA](docs/QA.md). Existing saves retain their level; new fields default safely and area access follows the new level gates.
 
 ## Save and install
 
@@ -91,3 +95,5 @@ Run `npm run balance` to reproduce the complete balance report (including a four
 The browser exposes read-only diagnostics through `window.aetherStory.getSnapshot()` and `window.aetherStory.getDiagnostics()` for bug reports. No debug mutation or backend is required.
 
 The illustrated mushroom valley and four-class/creature animation atlases are original AI-generated artwork created for this project and bundled locally as WebP assets. Terrain and effects use local Canvas artwork; sound is synthesized locally. Commercial-game location/boss names and remote libraries from the larger reference snippet are replaced. The larger supplied snippet ended during its combat implementation; this repository contains a new modular implementation rather than claiming to repair code that was not supplied.
+
+Version **1.1.0 — Attributes & Mastery** appears on the title screen and in Settings. Installed clients offer “Update ready · Restart game” on subsequent worker updates; restarting saves progress before loading the new build.

@@ -8,6 +8,8 @@ import {
   combatPower,
   lootRarity,
   RARITIES,
+  normalizeAllocation,
+  ATTRIBUTE_KEYS,
 } from './rpg.js';
 import { gearScore, areaReadiness } from './auto.js';
 export { areaReadiness } from './auto.js';
@@ -131,26 +133,38 @@ function recalculate(s, heal = false) {
     c = CLASS_DEFS.find((c) => c.id === s.classId),
     oldHp = p.maxHp || c.hp,
     oldMp = p.maxMp || c.mp;
-  const growth = growthStats(s.classId, p.level);
+  const growth = growthStats(s.classId, p.level, s.attributeAllocation);
+  p.ap = Math.max(
+    0,
+    (p.level - 1) * 5 - Object.values(s.attributeAllocation).reduce((a, b) => a + b, 0),
+  );
   p.attributes = growth.attributes;
   p.mainAttribute = growth.main;
+  p.secondaryAttribute = growth.secondary;
   let attack = c.attack + growth.attackGrowth,
-    defense = c.defense + (p.level - 1) * 2;
+    defense = c.defense + (p.level - 1) * 2 + (p.attributes.STR - 4) * 0.2;
   for (const item of Object.values(p.equipment)) {
     if (!item) continue;
     attack += (item.attack || 0) * (1 + (item.stars || 0) * 0.12);
     defense += (item.defense || 0) * (1 + (item.stars || 0) * 0.12);
   }
   const buff = p.buffRemaining > 0 ? BUFFS[s.classId] : {};
-  p.baseAttack = Math.round(attack + (s.upgrades?.mastery || 0) * 4);
+  p.baseAttack = Math.round((attack + (s.upgrades?.mastery || 0) * 4) * (1 + s.masteryRank * 0.02));
   p.baseDefense = Math.round(defense);
   p.attack = Math.round(p.baseAttack * (buff.attack || 1));
   p.defense = Math.round(defense * (buff.defense || 1));
-  p.critRate = Math.min(0.35, 0.05 + (p.attributes.LUK - 4) * 0.001) + (buff.crit || 0);
-  p.critDamage = 1.5;
+  p.critRate =
+    Math.min(0.5, 0.05 + (p.attributes.LUK - 4) * 0.001 + (p.attributes.DEX - 4) * 0.0005) +
+    (buff.crit || 0);
+  p.critDamage = 1.5 + (p.attributes.LUK - 4) * 0.002;
+  p.attackSpeed = 1 + Math.min(0.25, (p.attributes.DEX - 4) * 0.001);
+  p.skillDamageMultiplier = (1 + (p.attributes.INT - 4) * 0.001) * (1 + s.masteryRank * 0.01);
+  p.minDamageMultiplier = 0.9 + s.masteryRank * 0.005;
+  p.maxDamageMultiplier = 1.1;
   p.manaCostMultiplier = buff.mana || 1;
-  p.maxHp = c.hp + (p.level - 1) * 28 + (s.upgrades?.vitality || 0) * 25;
-  p.maxMp = c.mp + (p.level - 1) * 7;
+  p.maxHp =
+    c.hp + (p.level - 1) * 28 + (p.attributes.STR - 4) * 2 + (s.upgrades?.vitality || 0) * 25;
+  p.maxMp = c.mp + (p.level - 1) * 7 + (p.attributes.INT - 4) * 3;
   p.combatPower = combatPower(p);
   p.attackRange = c.range;
   p.hp = heal ? p.maxHp : clamp(p.hp + (p.maxHp - oldHp), 0, p.maxHp);
@@ -193,13 +207,25 @@ function advance(s) {
   const p = s.player;
   while (p.level < 200 && p.xp >= xpThreshold(p.level)) {
     p.xp -= xpThreshold(p.level);
+    const before = { attack: p.attack, defense: p.defense, hp: p.maxHp, mp: p.maxMp };
     p.level++;
     s.sp += 2;
     recalculate(s, true);
     floating(s, center(p), p.y - 30, `LEVEL ${p.level}!`, '#9ff2c8');
     effect(s, 'levelup', center(p), p.y, { life: 1, maxLife: 1 });
-    notice(s, `Level ${p.level} · +4 ATK · +2 DEF · +28 HP · +2 skill points`);
-    s.levelUpSummary = { level: p.level, attack: 4, defense: 2, hp: 28, mp: 7, remaining: 5 };
+    s.levelUpSummary = {
+      level: p.level,
+      attack: p.attack - before.attack,
+      defense: p.defense - before.defense,
+      hp: p.maxHp - before.hp,
+      mp: p.maxMp - before.mp,
+      ap: 5,
+      remaining: 6,
+    };
+    notice(
+      s,
+      `Level ${p.level} · +${s.levelUpSummary.attack} ATK · +${s.levelUpSummary.hp} HP · +${s.levelUpSummary.mp} MP · +5 AP · +2 SP`,
+    );
   }
   unlock(s);
 }
@@ -302,6 +328,8 @@ export function createGame(progress = null, now = new Date()) {
   };
   const s = {
     saveVersion: 4,
+    attributeAllocation: normalizeAllocation(saved.attributeAllocation, player.level),
+    masteryRank: clamp(Math.floor(finite(saved.masteryRank)), 0, 20),
     deaths: Math.max(0, Math.floor(finite(saved.player?.deaths))),
     upgrades: {
       vitality: clamp(Math.floor(finite(saved.upgrades?.vitality)), 0, 10),
@@ -394,6 +422,32 @@ export function toggleAuto(s) {
   s.autoNavigation.edge = null;
   notice(s, s.auto ? 'AUTO exploration enabled' : 'Manual adventure');
   return s.auto;
+}
+export function allocateAttribute(s, stat, amount = 1) {
+  if (
+    !ATTRIBUTE_KEYS.includes(stat) ||
+    !Number.isSafeInteger(amount) ||
+    amount <= 0 ||
+    amount > s.player.ap
+  )
+    return false;
+  s.attributeAllocation[stat] += amount;
+  recalculate(s);
+  notice(s, `+${amount} ${stat} · ${s.player.ap} AP remaining`);
+  return true;
+}
+export function resetAttributes(s) {
+  s.attributeAllocation = normalizeAllocation(null, s.player.level);
+  recalculate(s);
+  notice(s, 'Assigned AP refunded. Your level growth is preserved.');
+}
+export function upgradeMastery(s) {
+  if (s.sp < 1 || s.masteryRank >= 20) return false;
+  s.sp--;
+  s.masteryRank++;
+  recalculate(s);
+  notice(s, `Mastery rank ${s.masteryRank} · attack, skill power and minimum damage increased`);
+  return true;
 }
 export function equipBestGear(s) {
   const best = { ...s.player.equipment };
@@ -796,6 +850,10 @@ export function serializeGame(s, settings = s.settings) {
   return copy({
     version: 4,
     saveVersion: 4,
+    ...(Object.values(s.attributeAllocation).some(Boolean)
+      ? { attributeAllocation: s.attributeAllocation }
+      : {}),
+    ...(s.masteryRank > 0 ? { masteryRank: s.masteryRank } : {}),
     absence: s.absence || null,
     player: { level: s.player.level, xp: s.player.xp, gold: s.player.gold, deaths: s.deaths },
     upgrades: s.upgrades,
@@ -923,9 +981,22 @@ function hitEnemies(s, damage, range, style, aoe = false, hits = 1) {
       continue;
     s.combatSeed = (Math.imul(1664525, s.combatSeed ?? 38192) + 1013904223) >>> 0;
     const critical = s.combatSeed / 4294967296 < p.critRate;
-    const amount = Math.max(1, Math.round(damage * (critical ? p.critDamage : 1)));
+    s.combatSeed = (Math.imul(1664525, s.combatSeed) + 1013904223) >>> 0;
+    const roll =
+      p.minDamageMultiplier +
+      (p.maxDamageMultiplier - p.minDamageMultiplier) * (s.combatSeed / 4294967296);
+    const amount = Math.max(1, Math.round(damage * roll * (critical ? p.critDamage : 1)));
     e.hp = Math.max(0, e.hp - amount);
     e.hitTimer = 0.22;
+    if (s.effects.length < 64)
+      effect(s, 'skill-impact', center(e), e.y + e.h * 0.45, {
+        classId: s.classId,
+        style,
+        hits,
+        life: style === 'attack' ? 0.22 : 0.5,
+        maxLife: style === 'attack' ? 0.22 : 0.5,
+        critical,
+      });
     e.knockbackVx = (center(e) < center(p) ? -1 : 1) * (e.isBoss ? 30 : 155);
     e.knockbackTimer = 0.15;
     // Split the actual damage total into readable lines; no extra phantom damage.
@@ -950,7 +1021,7 @@ function combat(s, input) {
   if (input.attack && p.attackTimer <= 0 && !p.climbing) {
     p.combo = p.comboTimer > 0 ? (p.combo % 3) + 1 : 1;
     p.comboTimer = 1.4;
-    p.attackTimer = s.classId === 'nightblade' ? 0.3 : 0.42;
+    p.attackTimer = (s.classId === 'nightblade' ? 0.3 : 0.42) / p.attackSpeed;
     p.attackAnimation = 0.24;
     effect(
       s,
@@ -986,7 +1057,7 @@ function combat(s, input) {
     });
     hitEnemies(
       s,
-      p.attack * def.damage * (1 + (s.skillLevels[i] - 1) * 0.15),
+      p.attack * def.damage * (1 + (s.skillLevels[i] - 1) * 0.15) * p.skillDamageMultiplier,
       def.range,
       def.style,
       i >= 2,

@@ -1,0 +1,282 @@
+{
+  "vanguard": {
+    "level1": {
+      "level": 1,
+      "attack": 31,
+      "maxHp": 180,
+      "maxMp": 75,
+      "ap": 0,
+      "sp": 0,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 4,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "level2": {
+      "level": 2,
+      "attack": 35,
+      "maxHp": 214,
+      "maxMp": 82,
+      "ap": 5,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 7,
+        "DEX": 5,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "withAP": {
+      "level": 2,
+      "attack": 41,
+      "maxHp": 224,
+      "maxMp": 82,
+      "ap": 0,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 12,
+        "DEX": 5,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "withMastery": {
+      "level": 2,
+      "attack": 42,
+      "maxHp": 224,
+      "maxMp": 82,
+      "ap": 0,
+      "sp": 1,
+      "masteryRank": 1,
+      "attributes": {
+        "STR": 12,
+        "DEX": 5,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90.5,
+      "skillDamagePercent": 101
+    }
+  },
+  "arcanist": {
+    "level1": {
+      "level": 1,
+      "attack": 34,
+      "maxHp": 135,
+      "maxMp": 135,
+      "ap": 0,
+      "sp": 0,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 4,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "level2": {
+      "level": 2,
+      "attack": 38,
+      "maxHp": 163,
+      "maxMp": 151,
+      "ap": 5,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 4,
+        "INT": 7,
+        "LUK": 5
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100.29999999999998
+    },
+    "withAP": {
+      "level": 2,
+      "attack": 44,
+      "maxHp": 163,
+      "maxMp": 166,
+      "ap": 0,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 4,
+        "INT": 12,
+        "LUK": 5
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100.8
+    },
+    "withMastery": {
+      "level": 2,
+      "attack": 45,
+      "maxHp": 163,
+      "maxMp": 166,
+      "ap": 0,
+      "sp": 1,
+      "masteryRank": 1,
+      "attributes": {
+        "STR": 4,
+        "DEX": 4,
+        "INT": 12,
+        "LUK": 5
+      },
+      "minimumDamagePercent": 90.5,
+      "skillDamagePercent": 101.808
+    }
+  },
+  "nightblade": {
+    "level1": {
+      "level": 1,
+      "attack": 35,
+      "maxHp": 145,
+      "maxMp": 95,
+      "ap": 0,
+      "sp": 0,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 4,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "level2": {
+      "level": 2,
+      "attack": 39,
+      "maxHp": 173,
+      "maxMp": 102,
+      "ap": 5,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 5,
+        "INT": 4,
+        "LUK": 7
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "withAP": {
+      "level": 2,
+      "attack": 45,
+      "maxHp": 173,
+      "maxMp": 102,
+      "ap": 0,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 5,
+        "INT": 4,
+        "LUK": 12
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "withMastery": {
+      "level": 2,
+      "attack": 46,
+      "maxHp": 173,
+      "maxMp": 102,
+      "ap": 0,
+      "sp": 1,
+      "masteryRank": 1,
+      "attributes": {
+        "STR": 4,
+        "DEX": 5,
+        "INT": 4,
+        "LUK": 12
+      },
+      "minimumDamagePercent": 90.5,
+      "skillDamagePercent": 101
+    }
+  },
+  "ranger": {
+    "level1": {
+      "level": 1,
+      "attack": 32,
+      "maxHp": 155,
+      "maxMp": 105,
+      "ap": 0,
+      "sp": 0,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 4,
+        "DEX": 4,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "level2": {
+      "level": 2,
+      "attack": 36,
+      "maxHp": 185,
+      "maxMp": 112,
+      "ap": 5,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 5,
+        "DEX": 7,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "withAP": {
+      "level": 2,
+      "attack": 42,
+      "maxHp": 185,
+      "maxMp": 112,
+      "ap": 0,
+      "sp": 2,
+      "masteryRank": 0,
+      "attributes": {
+        "STR": 5,
+        "DEX": 12,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90,
+      "skillDamagePercent": 100
+    },
+    "withMastery": {
+      "level": 2,
+      "attack": 43,
+      "maxHp": 185,
+      "maxMp": 112,
+      "ap": 0,
+      "sp": 1,
+      "masteryRank": 1,
+      "attributes": {
+        "STR": 5,
+        "DEX": 12,
+        "INT": 4,
+        "LUK": 4
+      },
+      "minimumDamagePercent": 90.5,
+      "skillDamagePercent": 101
+    }
+  }
+}

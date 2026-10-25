@@ -6,8 +6,8 @@ export function createFixedStepper(step, { stepSeconds = 1 / 120, maxFrameSecond
   let pending = {};
   return {
     advance(elapsed, input = {}) {
-      if (!Number.isFinite(elapsed) || elapsed <= 0) return 0;
       for (const key of EDGES) if (input[key]) pending[key] = true;
+      if (!Number.isFinite(elapsed) || elapsed <= 0) return 0;
       accumulator += Math.min(elapsed, maxFrameSeconds);
       let count = 0;
       while (accumulator + 1e-10 >= stepSeconds) {

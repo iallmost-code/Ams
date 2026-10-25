@@ -1,3 +1,4 @@
+import { drawSkillVfx, drawImpactVfx } from './skill-vfx.js';
 import { worldToScreen, placeFloatingTexts } from './game/screen-text.js';
 import { getStoryView } from './game/quests.js';
 import { valleyArt, heroArt, creatureArt, cavernArt, altarArt, pipArt } from './art.js';
@@ -175,6 +176,12 @@ export class Renderer {
     this.drawBackground();
     c.save();
     c.translate(-this.camera.x, -this.camera.y);
+    if (!state.settings?.reducedMotion) {
+      const hit = state.effects.some(
+        (e) => e.type === 'skill-impact' && e.style !== 'attack' && e.life > 0.4,
+      );
+      if (hit) c.translate(Math.sin(state.time * 90) * 2, Math.cos(state.time * 77) * 1.5);
+    }
     this.drawWorldScenery(world);
     for (const rope of world.ropes || []) if (this.visible(rope.x, 80)) this.drawRope(rope);
     for (const platform of world.platforms || [])
@@ -1694,7 +1701,9 @@ export class Renderer {
     c.translate(effect.x || 0, effect.y || 0);
     c.globalAlpha = alpha;
     if (effect.skillIndex !== undefined) {
-      this.drawClassArt(effect, progress, color);
+      drawSkillVfx(c, effect, progress, this.state.settings?.reducedMotion);
+    } else if (kind === 'skill-impact') {
+      drawImpactVfx(c, effect, progress, this.state.settings?.reducedMotion);
     } else if (kind === 'buff') {
       glow(c, 0, 0, 75, color + '55');
       c.rotate(progress * 2);
@@ -1833,121 +1842,6 @@ export class Renderer {
       }
     }
     c.restore();
-  }
-  drawClassArt(effect, progress, color) {
-    const c = this.ctx,
-      ultimate = effect.skillIndex === 3,
-      size = ultimate ? 220 : 70 + effect.skillIndex * 25,
-      pulse = Math.sin(progress * Math.PI),
-      cls = effect.classId,
-      face = effect.facing || 1;
-    c.scale(face, 1);
-    glow(c, 35, -15, size * 0.8, color + (ultimate ? '48' : '28'));
-    c.strokeStyle = color;
-    c.lineWidth = 3;
-    c.shadowColor = color;
-    c.shadowBlur = this.state.settings?.reducedMotion ? 0 : 12;
-    if (cls === 'vanguard') {
-      if (ultimate) {
-        const y = -310 + Math.min(1, progress * 2) * 260;
-        path(
-          c,
-          `M 110 ${y - 100} L 138 ${y - 65} L 129 ${y + 45} L 114 ${y + 90} L 98 ${y + 45} L 90 ${y - 65} Z`,
-          '#fff2bd',
-          '#e9ac4c',
-          4,
-        );
-        path(c, `M 75 ${y - 55} L 153 ${y - 55} L 153 ${y - 43} L 75 ${y - 43} Z`, '#e8b25a');
-        for (let i = 0; i < 3; i++)
-          ring(c, 110, 40, (40 + progress * 170) * (1 - i * 0.18), 15 + progress * 10, color, 3);
-      } else
-        for (let i = 0; i < 3 + effect.skillIndex; i++) {
-          c.save();
-          c.translate(10 + i * 12, 0);
-          c.rotate(-1 + progress * 2 + i * 0.18);
-          path(
-            c,
-            `M 5 -${size} Q ${size * 1.8} 0 5 ${size} Q ${size} 0 5 -${size}`,
-            i % 2 ? '#fff6d9' : color,
-          );
-          c.restore();
-        }
-    } else if (cls === 'arcanist') {
-      const r = size * (0.4 + pulse * 0.6);
-      for (let ring = 0; ring < 2; ring++) {
-        c.save();
-        c.rotate(progress * (ring ? 2 : -2));
-        c.beginPath();
-        c.ellipse(55, 0, r * (1 - ring * 0.22), r * 0.48, 0, 0, TAU);
-        c.stroke();
-        for (let i = 0; i < 6; i++) {
-          const a = (i * TAU) / 6;
-          const x = 55 + Math.cos(a) * r,
-            y = Math.sin(a) * r * 0.48;
-          path(c, `M ${x} ${y - 18} l 8 18 l -8 18 l -8 -18 Z`, i % 2 ? color : '#f9edff');
-        }
-        c.restore();
-      }
-      if (ultimate)
-        for (let i = 0; i < 5; i++) {
-          const x = -90 + i * 70,
-            y = -260 + progress * 290;
-          path(
-            c,
-            `M ${x - 12} ${y - 90} L ${x + 15} ${y + 10} L ${x} ${y + 35} L ${x - 18} ${y + 8} Z`,
-            '#fff1ff',
-            color,
-            3,
-          );
-        }
-    } else if (cls === 'nightblade') {
-      for (let i = 0; i < (ultimate ? 8 : 4); i++) {
-        c.save();
-        c.rotate((i * TAU) / (ultimate ? 8 : 4) + progress * 2);
-        const x = 30 + progress * size;
-        path(
-          c,
-          `M ${x} -9 Q ${x + 80} -80 ${x + 15} 30 Q ${x + 45} -15 ${x} -9`,
-          i % 2 ? color : '#f2dbff',
-        );
-        c.restore();
-      }
-      if (ultimate) {
-        c.beginPath();
-        c.arc(40, -80, 60, -1.6, 1.6);
-        c.strokeStyle = '#f4ddff';
-        c.lineWidth = 12;
-        c.stroke();
-      }
-    } else {
-      for (let i = 0; i < (ultimate ? 12 : 5); i++) {
-        const a = (i - ((ultimate ? 12 : 5) - 1) / 2) * 0.13;
-        c.save();
-        c.rotate(a);
-        const x = 20 + progress * size * 1.4;
-        path(
-          c,
-          `M ${x - 45} -2 L ${x + 10} -2 L ${x + 3} -10 L ${x + 24} 0 L ${x + 3} 10 L ${x + 10} 2 L ${x - 45} 2 Z`,
-          i % 2 ? color : '#fff7d6',
-        );
-        c.restore();
-      }
-      if (ultimate) {
-        c.save();
-        c.translate(40 + progress * 130, -55);
-        c.scale(1.6, 1.6);
-        path(
-          c,
-          'M 0 18 Q -35 -65 -100 -45 Q -70 5 -22 10 L -42 45 L 0 27 L 42 45 L 22 10 Q 70 5 100 -45 Q 35 -65 0 18 Z',
-          '#f7cd6bb0',
-          '#fff1ba',
-          2,
-        );
-        star(c, 0, 5, 12, '#fff7da');
-        c.restore();
-      }
-    }
-    c.shadowBlur = 0;
   }
   drawParticle(particle) {
     if (!Number.isFinite(particle.x) || !Number.isFinite(particle.y)) return;

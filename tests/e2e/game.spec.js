@@ -37,6 +37,7 @@ test('starts a real canvas game with movement, jump, pause and no runtime except
     cavern: true,
     altar: true,
     pip: true,
+    skills: true,
   });
   await page.waitForTimeout(350);
   const before = await snapshot(page);

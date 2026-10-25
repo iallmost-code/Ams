@@ -1,0 +1,7 @@
+# Combat and progression reference review
+
+The implementation was compared with the official mobile game screenshots on [the App Store listing](https://apps.apple.com/us/app/maplestory-m-fantasy-mmorpg/id1290086677) and [Google Play listing](https://play.google.com/store/apps/details?id=com.nexon.maplem.global). The references show strong directional attack silhouettes, bright layered impacts, compact combat controls and visible character growth. External screenshots were viewed as reference only and are not redistributed as game assets.
+
+Primary stat/AP and mastery patterns were checked against [Stats](https://maplestorywiki.net/w/Stats), [Sword Mastery](https://maplestorywiki.net/w/Sword_Mastery), [Spell Mastery](https://maplestorywiki.net/w/Spell_Mastery) and [Hero skills](https://maplestorywiki.net/w/Hero/Skills). Those wiki mechanics describe classic/PC systems; the implementation does not claim that manual AP allocation matches the current mobile client's stat UI. The user specifically requested STR/DEX/INT/LUK, so AetherStory combines that allocation model with the mobile presentation reference.
+
+The adaptation uses original names, artwork and animation choreography. Its own stat coefficients, XP curve, shared-class progression and mastery cap are chosen for this game's world and existing saves. No external sprites, animation frames or code were extracted. The user-requested effect PNG was generated specifically for AetherStory.

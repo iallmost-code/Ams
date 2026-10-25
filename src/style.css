@@ -3869,3 +3869,175 @@ button {
     0 1px 2px #000000,
     0 0 4px #000000;
 }
+
+/* Spendable character stats and learned mastery. */
+.ap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  margin: 8px 0 14px;
+  background: #0b2527;
+  border: 1px solid #e6c987;
+  border-radius: 10px;
+}
+.ap-toolbar strong {
+  flex: 1 0 100%;
+  font-size: 17px;
+  color: #ffe197;
+}
+.ap-toolbar button {
+  min-height: 44px;
+  flex: 1;
+  padding: 8px;
+  font-size: 11px;
+}
+.attribute-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+.attribute-grid > div {
+  position: relative;
+  gap: 8px;
+}
+.attribute-grid .attribute-detail {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #d9e2d1;
+}
+.attribute-plus {
+  align-self: stretch;
+  min-height: 44px;
+  border: 1px solid #dfb967;
+  border-radius: 7px;
+  background: linear-gradient(#ffe5a9, #b68b46);
+  color: #35200b;
+  font-weight: 900;
+}
+.attribute-plus:disabled {
+  opacity: 0.35;
+}
+.mastery-card {
+  padding: 16px;
+  margin: 8px 0 18px;
+  border: 2px solid #d5ac68;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at top left, #79563588, #123534);
+}
+.mastery-card h2 {
+  color: #ffe7ac;
+  font-size: 20px;
+}
+.mastery-card p {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.mastery-card button {
+  min-height: 44px;
+  padding: 10px 16px;
+}
+.quick-nav .points-ready {
+  border-color: #e5b65c;
+  box-shadow: 0 0 8px #f8cb4b66;
+}
+@media (max-height: 500px) {
+  .panel-character .ap-toolbar {
+    grid-column: 1/-1;
+    margin: 0;
+    padding: 8px;
+  }
+  .panel-character .ap-toolbar strong {
+    flex: 0 0 auto;
+    font-size: 14px;
+  }
+  .panel-character .attribute-grid {
+    grid-column: 1;
+    grid-row: 4;
+  }
+  .panel-character .stat-grid {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .panel-character .attribute-grid .attribute-detail {
+    font-size: 9px;
+  }
+  .quick-nav button {
+    min-width: 30px;
+  }
+}
+.character-core {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 8px 0;
+}
+.character-core > div {
+  padding: 9px 5px;
+  text-align: center;
+  background: #0a2528;
+  border: 1px solid #b4a46b77;
+  border-radius: 8px;
+}
+.character-core small {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: #d7d9b9;
+}
+.character-core b {
+  display: block;
+  color: #ffe7ab;
+  font-size: 18px;
+  margin-top: 4px;
+}
+.panel-character .panel-description {
+  display: none;
+}
+.panel-character .character-banner {
+  padding: 8px 12px;
+  margin: 10px 0;
+}
+.panel-character .character-banner h2 {
+  margin: 0;
+  font-size: 21px;
+}
+.panel-character .character-banner p {
+  margin: 3px 0;
+}
+.panel-character .power-banner {
+  margin: 8px 0;
+  padding: 10px;
+  font-size: 20px;
+}
+@media (max-height: 500px) {
+  .panel-character .character-core {
+    grid-column: 1/-1;
+    grid-row: 2;
+    margin: 0;
+  }
+  .panel-character .growth-note {
+    grid-row: 3;
+  }
+  .panel-character .ap-toolbar {
+    grid-row: 4;
+  }
+  .panel-character .attribute-grid,
+  .panel-character .stat-grid {
+    grid-row: 5;
+  }
+}
+.update-ready {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid #ffe0a2;
+  border-radius: 12px;
+  color: #fff3c9;
+  box-shadow: 0 3px 15px #0009;
+}
