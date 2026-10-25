@@ -22,26 +22,26 @@
 ### Task 1: Region and randomized equipment
 **Files:** src/chapter/world.js, gear.js; tests/chapter.test.js
 **Interfaces:** createMap(id) returns independent world/enemies/portals; rollGear(seed,type,rarity) deterministic item; gearStats(items) aggregates bounded percent bonuses.
-- [ ] Write failing map-isolation, reciprocal portal, randomized roll and protected-item tests; run Node tests and confirm RED.
-- [ ] Define four maps and enemy families, loot/affix generation and score functions.
-- [ ] Run chapter tests GREEN and whole unit suite. Commit.
+- [x] Write failing map-isolation, reciprocal portal, randomized roll and protected-item tests; run Node tests and confirm RED.
+- [x] Define four maps and enemy families, loot/affix generation and score functions.
+- [x] Run chapter tests GREEN and whole unit suite. Commit.
 
 ### Task 2: Playable Vanguard simulation
 **Files:** src/chapter/engine.js; tests/chapter.test.js
 **Interfaces:** createChapter(saved), updateChapter(state,input,dt), chapterAction(state,action,arg), serializeChapter(state).
-- [ ] Write failing startup/hit-once, buffered jump, portal/save and progression tests; confirm RED.
-- [ ] Implement movement, timed combat, enemies/guardian telegraphs, drops, quests, pets, build stats and safe persistence. Training bypasses saving only, not combat.
-- [ ] Run chapter tests GREEN and unit suite. Commit.
+- [x] Write failing startup/hit-once, buffered jump, portal/save and progression tests; confirm RED.
+- [x] Implement movement, timed combat, enemies/guardian telegraphs, drops, quests, pets, build stats and safe persistence. Training bypasses saving only, not combat.
+- [x] Run chapter tests GREEN and unit suite. Commit.
 
 ### Task 3: Illustrated motion and mobile chapter interface
 **Files:** src/chapter/main.js, renderer.js, chapter.css; src/bootstrap.js; index.html; src/ui.js; assets.
 **Interfaces:** startChapter() binds real input/UI and renderer; title link selects chapter. readonly diagnostics for browser verification.
-- [ ] Add failing E2E entry/travel/cast/equipment tests; confirm missing UI failure.
-- [ ] Add animated Vanguard poses, holy skill choreography, region navigator, build/gear/quest panels, compact touch controls, training entry and separate save.
-- [ ] Verify phone screenshots, actual hits/monster deaths, responsive controls, return portals and reload; run full suite. Commit.
+- [x] Add failing E2E entry/travel/cast/equipment tests; confirm missing UI failure.
+- [x] Add animated Vanguard poses, holy skill choreography, region navigator, build/gear/quest panels, compact touch controls, training entry and separate save.
+- [x] Verify phone screenshots, actual hits/monster deaths, responsive controls, return portals and reload; run full suite. Commit.
 
 ### Task 4: Finish and review
 **Files:** docs/QA.md, README.md, AetherStory.html; tests/e2e/chapter.spec.js.
-- [ ] Run npm test, build, build:html, test:e2e and retained legacy balance.
-- [ ] Document implemented scope and preview balance honestly; regenerate portable HTML and capture both phone views.
-- [ ] Review whole diff, fix material findings with tests; push new branch and open PR into main, no merge/publish.
+- [x] Run npm test, build, build:html, test:e2e and retained legacy balance.
+- [x] Document implemented scope and preview balance honestly; regenerate portable HTML and capture both phone views.
+- [x] Review whole diff, fix material findings with tests; push new branch and open PR into main, no merge/publish.

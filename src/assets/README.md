@@ -14,3 +14,10 @@ The loader isolates integer cell interiors into individual canvases, with 12 tra
 - `skills.webp`: cleaned, transparent 1536 × 1024 skill sheet, ordered Vanguard / Arcanist / Nightblade / Ranger. Each row progresses start, growth, full power, breakup, fading sparkles. `skills.atlas.json` defines twenty equal 306 × 256 cells with a 3-pixel horizontal outer margin. Each frame is alpha-centered with at least 32 pixels of transparent border.
 - `skills.png` remains the editable cleaned source. `scripts/prepare-skill-atlas.py INPUT.png [OUTPUT_DIR]` cleans the original generated sheet and exports PNG + quality-90 WebP + atlas metadata. It removes faint alpha noise, preserves relative frame sizes within each row, and verifies exact alpha equality between exports. Run it against the original source, not repeatedly against its own output.
 - Primary effects last 1.25 seconds, including a 650ms full-power hold, and appear about 1.5× larger than the previous presentation. Every class skill renders after both hero and Pip. Ultimate effects add painted class accents to their separate procedural choreography. Source padding replaces the previous runtime alpha scan and shrink.
+
+## Dawntrail chapter art
+
+- `vanguard-motion.webp`: newly generated original twenty-pose (5×4) hammer-and-shield character sheet. Rows: running, hammer swing, airborne/landing, holy casting/guard. Runtime frames are isolated and aligned to a stable foot baseline.
+- `aurel.webp`: newly generated original painted stone-bell guardian with moss, flowers and golden rune inlays. The chapter renderer animates its telegraph pulse and hit reaction.
+
+Both transparent WebPs are bundled locally, precached and embedded in the portable HTML. The chapter reuses the original scenery, creatures and Pip for a consistent painted palette.
