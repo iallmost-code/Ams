@@ -1,5 +1,7 @@
 # AetherStory M: Chronicles of Aetheria
 
+**New playable preview: The Lantern Vow.** Choose **Play Vanguard chapter** on the title, or open `?chapter=vanguard`. Explore four separate maps as a hammer-and-shield Vanguard, build around percentage loot, and challenge Aurel. **Try all skills in training** unlocks the Lv.10 moveset in an unsaved session. The original adventure and save remain available. [Phone captures and testing](docs/QA.md#dawntrail-vanguard-and-first-region-preview).
+
 An original mobile-first Canvas action RPG built from the supplied platform/rope combat prototypes. Explore illustrated fantasy hunting grounds, fight manually or with AUTO, change class, collect equipment and save progress on your device. No backend, database or account is needed.
 
 ![AetherStory mobile gameplay with original sprite artwork](docs/mobile-preview.png)

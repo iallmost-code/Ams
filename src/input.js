@@ -15,6 +15,7 @@ const KEY_ACTIONS = {
   KeyC: 'skill3',
   KeyV: 'skill4',
   KeyF: 'buff',
+  KeyG: 'guard',
   KeyE: 'interact',
 };
 const ACTIONS = [
@@ -30,6 +31,7 @@ const ACTIONS = [
   'skill4',
   'interact',
   'buff',
+  'guard',
 ];
 const PULSES = new Set(['jump', 'skill', 'skill2', 'skill3', 'skill4', 'interact', 'buff']);
 /** Separate physical sources keep one lifted finger from releasing another. */

@@ -1,0 +1,1103 @@
+.chapter-shell {
+  position: absolute;
+  inset: 0;
+  color: #fff5d9;
+  font:
+    600 13px Georgia,
+    serif;
+  pointer-events: none;
+  --chapter-panel: linear-gradient(145deg, #183f46f5, #102a36f8);
+  --chapter-gold: #f0cf8e;
+}
+.chapter-shell button,
+.chapter-shell a,
+.chapter-shell summary {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+}
+.chapter-shell button {
+  color: #f8ecd0;
+  border: 1px solid #d9ba7a80;
+  background: linear-gradient(145deg, #31565eea, #173c48ed);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 7px 12px;
+  font:
+    700 12px Georgia,
+    serif;
+  box-shadow: 0 3px 8px #10273233;
+}
+.chapter-shell button:active {
+  transform: scale(0.96);
+}
+.chapter-shell button:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+.chapter-shell a {
+  color: #e6cd97;
+}
+.chapter-shell small {
+  display: block;
+  font:
+    700 9px Arial,
+    sans-serif;
+  letter-spacing: 1.1px;
+}
+.chapter-shell button small {
+  letter-spacing: 0.3px;
+  font-size: 9px;
+  margin-top: 3px;
+}
+.chapter-shell strong {
+  display: block;
+}
+.chapter-identity {
+  position: absolute;
+  top: max(9px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  width: 224px;
+  padding: 8px 10px;
+  display: flex;
+  gap: 10px;
+  border: 1px solid #f1d89a;
+  background: linear-gradient(135deg, #fff7df, #e6ddbb);
+  border-radius: 15px;
+  color: #3e493c;
+  box-shadow: 0 5px 15px #173b3c30;
+}
+.chapter-identity > div {
+  flex: 1;
+}
+.chapter-identity small {
+  font-size: 8px;
+  color: #6e7462;
+}
+.chapter-identity strong {
+  font-size: 17px;
+  margin: 2px 0;
+}
+.chapter-level {
+  float: right;
+  font: 700 11px Arial;
+  background: #a47935;
+  color: #fff7dc;
+  padding: 3px 5px;
+  border-radius: 7px;
+}
+.chapter-crest {
+  font-size: 33px;
+  line-height: 55px;
+  color: #a77c37;
+  text-shadow: 0 2px 0 #fff6d8;
+}
+.chapter-meter {
+  height: 10px;
+  border-radius: 8px;
+  background: #7b888580;
+  overflow: hidden;
+  position: relative;
+  margin: 3px 0;
+  border: 1px solid #757c6c60;
+}
+.chapter-meter i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(#fb9b81, #dd5f5f);
+  border-radius: 5px;
+}
+.chapter-meter.mp i {
+  background: linear-gradient(#a5e1ed, #528dbc);
+}
+.chapter-meter span {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font: 700 8px Arial;
+  color: white;
+  text-shadow: 0 1px 2px #253540;
+}
+.chapter-nav {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right));
+  top: 12px;
+  display: flex;
+  gap: 5px;
+}
+.chapter-nav button {
+  width: 48px;
+  padding: 5px;
+  font-size: 18px;
+  background: linear-gradient(#fff3d8, #dfc99d);
+  color: #5e5943;
+  border-color: #fff3c0;
+}
+.chapter-nav small {
+  font-size: 8px;
+}
+.chapter-location {
+  position: absolute;
+  top: 17px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  max-width: 210px;
+  text-shadow: 0 2px 4px #173c35;
+}
+.chapter-location small {
+  color: #ffedbc;
+  font-size: 8px;
+}
+.chapter-location strong {
+  font-size: 19px;
+  margin-top: 5px;
+}
+.chapter-tracker {
+  position: absolute;
+  top: 100px;
+  left: 11px;
+  width: 225px;
+  text-align: left;
+  padding: 9px 12px !important;
+  border-left: 3px solid #eac876 !important;
+  background: #153c42e8 !important;
+}
+.chapter-tracker small {
+  color: #f1d79d;
+  font-size: 8px;
+}
+.chapter-tracker strong {
+  font-size: 13px;
+  margin: 4px 0;
+}
+.chapter-tracker span {
+  font: 11px Arial;
+  color: #e0e9da;
+}
+.chapter-status {
+  position: absolute;
+  left: 10px;
+  top: 76px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 10px Arial;
+  color: #f7f0cd;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px #183d40;
+}
+.chapter-status button {
+  min-height: 23px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  font: 800 9px Arial;
+  letter-spacing: 1px;
+}
+.chapter-auto.active {
+  background: #ffe4a1 !important;
+  color: #28392e !important;
+  border-color: #fff5d5 !important;
+}
+.chapter-vow {
+  color: #ffe4a6;
+  font-weight: 800;
+}
+.chapter-wallet {
+  position: absolute;
+  right: 11px;
+  top: 71px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  background: #183d43bf;
+  font: 10px Arial;
+  color: #ffe3a0;
+}
+.chapter-notice {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  transform: translate(-50%, -50%);
+  padding: 10px 18px;
+  max-width: min(560px, 76vw);
+  background: #16393ee8;
+  border: 1px solid #d0ba76;
+  border-radius: 12px;
+  text-align: center;
+  font: 700 12px Arial;
+  box-shadow: 0 5px 15px #0c252340;
+}
+.chapter-notice[hidden] {
+  display: none;
+}
+.chapter-movement {
+  position: absolute;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: 25px;
+  width: 106px;
+  text-align: center;
+}
+.chapter-stick {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 2px solid #fff0c588;
+  border-radius: 50%;
+  background: radial-gradient(#f4d79a33, #e5d9b41a);
+  box-shadow: inset 0 0 20px #264a4222;
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+  color: #fff5d087;
+}
+.chapter-stick i {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  left: 27px;
+  top: 27px;
+  border-radius: 50%;
+  background: radial-gradient(at 30% 25%, #fff9da, #e2bd6b);
+  border: 2px solid #fffbeb;
+  box-shadow: 0 3px 14px #85683240;
+  transform: translate(var(--stick-x, 0px), var(--stick-y, 0px));
+  pointer-events: none;
+}
+.chapter-movement small {
+  font-size: 8px;
+  letter-spacing: 2px;
+  margin-top: 7px;
+  color: #fff7dd;
+  text-shadow: 0 1px 4px #12362d;
+}
+.chapter-combat {
+  position: absolute;
+  right: max(13px, env(safe-area-inset-right));
+  bottom: 24px;
+  width: 235px;
+}
+.chapter-skills {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 10px;
+  justify-content: flex-end;
+}
+.chapter-skills button {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  border-radius: 50%;
+  padding: 3px;
+  background: radial-gradient(at 30% 20%, #d3bd8970, #1c4b5570);
+  border: 1px solid #fff1bca8;
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+}
+.chapter-skills b {
+  font-size: 21px;
+  color: #fff0b0;
+}
+.chapter-skills small {
+  font-size: 8px;
+  color: #fcf1ce;
+  margin-top: 0;
+}
+.chapter-cd:empty {
+  display: none;
+}
+.chapter-cd {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #102b3dd6;
+  font: 800 12px Arial;
+  color: #fff3be;
+}
+.chapter-physical {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.chapter-physical button {
+  width: 45px;
+  height: 45px;
+  padding: 4px;
+  border-radius: 50%;
+  font-size: 21px;
+  background: #a5bda339;
+  backdrop-filter: blur(2px);
+}
+.chapter-physical button small {
+  font-size: 7px;
+  line-height: 8px;
+}
+.chapter-physical .chapter-attack {
+  width: 64px;
+  height: 64px;
+  font-size: 28px;
+  background: radial-gradient(at 25% 20%, #fff0bfc9, #dca65eae);
+  border: 2px solid #fff2c7;
+  color: #fff9e7;
+  box-shadow: 0 0 25px #f0cf8e24;
+}
+.chapter-physical .chapter-tonic {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  font-size: 17px;
+  background: #88557566;
+}
+.chapter-tonic small {
+  font-size: 8px !important;
+}
+.chapter-interact {
+  position: absolute;
+  right: 15px;
+  bottom: 172px;
+  max-width: 200px;
+  background: #15474dc7 !important;
+}
+.chapter-buff {
+  position: absolute;
+  right: 15px;
+  top: 101px;
+  min-height: 36px !important;
+  background: #244a519e !important;
+}
+.chapter-buff span {
+  font-size: 10px;
+}
+.chapter-exp {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: #163841ed;
+  border-top: 1px solid #b4ad75;
+}
+.chapter-exp i {
+  display: block;
+  background: linear-gradient(90deg, #bfac61, #ffe8a0);
+  height: 100%;
+}
+.chapter-exp span {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font: 700 8px Arial;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px #17353b;
+  color: #fff7e0;
+}
+.chapter-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d263b99;
+  backdrop-filter: blur(7px);
+  pointer-events: auto;
+  z-index: 60;
+  padding: 12px;
+}
+.chapter-overlay[hidden] {
+  display: none;
+}
+.chapter-panel {
+  width: min(730px, 100%);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  background: var(--chapter-panel);
+  border: 1px solid #f0d18e;
+  border-radius: 20px;
+  box-shadow: 0 20px 80px #061a39a6;
+  color: #f4eedb;
+  pointer-events: auto;
+}
+.chapter-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid #a6c1b326;
+  position: sticky;
+  top: 0;
+  background: #193e47;
+  z-index: 2;
+}
+.chapter-panel > header small {
+  color: #d8bd7e;
+  font-size: 8px;
+}
+.chapter-panel h2 {
+  margin: 4px 0 0;
+  font: 700 23px Georgia;
+}
+.chapter-panel > header button {
+  font-size: 23px;
+  width: 40px;
+  min-height: 40px;
+}
+.chapter-panel-content {
+  padding: 16px 20px;
+}
+.chapter-panel p {
+  line-height: 1.6;
+  color: #dce6dd;
+  font:
+    13px/1.6 Arial,
+    sans-serif;
+}
+.chapter-panel h3 {
+  font: 700 15px Georgia;
+  color: #ffe8af;
+  margin: 18px 0 9px;
+}
+.chapter-panel footer {
+  padding: 9px 20px;
+  border-top: 1px solid #a6c1b326;
+  font: 11px Arial;
+  color: #f0d79d;
+  position: sticky;
+  bottom: 0;
+  background: #183b45;
+}
+.chapter-primary {
+  background: linear-gradient(#ffedb6, #dcb16d) !important;
+  border-color: #ffedb0 !important;
+  color: #3c4638 !important;
+}
+.chapter-panel button small {
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.chapter-bag-tools {
+  position: sticky;
+  top: 0;
+  display: flex;
+  gap: 9px;
+  padding-bottom: 10px;
+  background: #193d46;
+  z-index: 1;
+}
+.chapter-bag-tools button {
+  flex: 1;
+  border-color: #dec28b;
+}
+.chapter-power {
+  display: grid;
+  gap: 6px;
+  padding: 13px;
+  background: #0a2939a8;
+  border: 1px solid #f2d99a3b;
+  border-radius: 12px;
+  margin: 4px 0 12px;
+}
+.chapter-power strong {
+  color: #ffe3a0;
+  font-size: 16px;
+}
+.chapter-power span {
+  font: 12px Arial;
+  color: #d9e6df;
+}
+.chapter-builds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+.chapter-builds button {
+  text-align: left;
+  padding: 10px;
+}
+.chapter-builds .selected {
+  border: 1px solid #ffe3a0;
+  background: #6a704840;
+}
+.chapter-builds strong {
+  font-size: 12px;
+  color: #ffe4b0;
+}
+.chapter-mastery {
+  width: 100%;
+  margin: 10px 0;
+  text-align: left;
+}
+.chapter-panel details {
+  border: 1px solid #a8c7af36;
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+.chapter-panel summary {
+  font: 700 12px Arial;
+  color: #e3d4ad;
+  padding: 4px;
+}
+.chapter-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--rarity) 50%, transparent);
+  border-left: 3px solid var(--rarity);
+  border-radius: 12px;
+  padding: 10px;
+  margin: 8px 0;
+  background: #0f303b;
+}
+.chapter-item > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.chapter-item small {
+  font: 700 9px Arial;
+  color: var(--rarity);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.chapter-item strong {
+  font: 700 13px Georgia;
+  color: #fff2d0;
+  margin: 4px 0;
+}
+.chapter-item span {
+  font: 11px Arial;
+  color: #d5dfce;
+}
+.chapter-item-icon {
+  font-size: 27px;
+  color: var(--rarity);
+  text-shadow: 0 0 12px var(--rarity);
+}
+.chapter-affixes {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+.chapter-affixes span {
+  font-size: 10px;
+  color: var(--rarity);
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: #193f4a;
+}
+.chapter-item-actions {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.chapter-item-actions button {
+  padding: 5px 9px;
+  font-size: 10px;
+}
+.chapter-empty {
+  padding: 12px;
+  background: #092a3866;
+  border-radius: 10px;
+}
+.chapter-map-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.chapter-map-card {
+  padding: 15px;
+  border: 1px solid #9dc2b33b;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #48665966, #183f4b);
+}
+.chapter-map-card.current {
+  border-color: #efd294;
+  background: linear-gradient(145deg, #82794755, #214b4a);
+}
+.chapter-map-card h3 {
+  margin-top: 8px;
+}
+.chapter-map-card p {
+  font-size: 12px;
+}
+.chapter-map-card span {
+  display: block;
+  font: 10px Arial;
+  color: #d1d7b8;
+  margin: 10px 0;
+}
+.chapter-map-card button {
+  width: 100%;
+  font-size: 10px;
+}
+.chapter-map-card small {
+  font-size: 8px;
+  color: #d4d8b1;
+}
+.chapter-dialogue {
+  font: italic 17px/1.7 Georgia !important;
+  color: #fff0bd !important;
+}
+.chapter-handbook {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.chapter-handbook > div {
+  padding: 10px;
+  background: #082d3d70;
+  border-radius: 10px;
+}
+.chapter-handbook p {
+  font-size: 11px;
+  margin-bottom: 0;
+}
+.chapter-handbook strong {
+  font: 700 12px Georgia;
+  color: #f2d397;
+}
+.chapter-confirm {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+.chapter-confirm button {
+  flex: 1;
+}
+.chapter-pause-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+.chapter-pause-actions a {
+  padding: 14px;
+  text-align: center;
+}
+.chapter-intro {
+  text-align: center;
+  padding: 28px 40px;
+}
+.chapter-intro-mark {
+  font-size: 50px;
+  color: #ffe7a2;
+  text-shadow: 0 0 35px #ffd4787a;
+}
+.chapter-intro > small {
+  color: #d9bd84;
+  font-size: 8px;
+  letter-spacing: 2px;
+}
+.chapter-intro h1 {
+  font: 700 42px Georgia;
+  color: #fff0be;
+  margin: 10px 0;
+}
+.chapter-intro > p {
+  margin: 0 0 16px;
+}
+.chapter-intro-columns {
+  display: flex;
+  gap: 25px;
+  text-align: left;
+  margin: 14px 0 22px;
+}
+.chapter-intro-columns > div {
+  flex: 1;
+}
+.chapter-intro-columns h3 {
+  margin: 0;
+}
+.chapter-intro-columns p {
+  font-size: 12px;
+}
+.chapter-intro > button {
+  display: block;
+  width: 100%;
+  margin: 9px 0;
+}
+.chapter-intro .chapter-save-note {
+  font: 10px/1.5 Arial;
+  letter-spacing: 0;
+  color: #c9d8cd;
+  margin: 14px 0;
+}
+.chapter-intro > a {
+  font: 11px Arial;
+}
+.chapter-entry-link {
+  display: block;
+  margin: 8px auto;
+  color: #72552e;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: #ffedc5;
+}
+@media (max-height: 450px) {
+  .chapter-identity {
+    width: 210px;
+    padding: 5px 8px;
+  }
+  .chapter-crest {
+    line-height: 44px;
+    font-size: 27px;
+  }
+  .chapter-identity strong {
+    font-size: 15px;
+  }
+  .chapter-identity small {
+    font-size: 7px;
+  }
+  .chapter-identity .chapter-meter {
+    height: 8px;
+  }
+  .chapter-status {
+    top: 69px;
+  }
+  .chapter-tracker {
+    top: 96px;
+    width: 212px;
+    padding: 7px 10px !important;
+  }
+  .chapter-tracker span {
+    font-size: 10px;
+  }
+  .chapter-location {
+    left: 46%;
+    max-width: 180px;
+    top: 13px;
+  }
+  .chapter-location strong {
+    font-size: 17px;
+  }
+  .chapter-nav {
+    top: 10px;
+  }
+  .chapter-nav button {
+    width: 43px;
+    min-height: 43px;
+  }
+  .chapter-buff {
+    top: 90px;
+  }
+  .chapter-wallet {
+    top: 60px;
+  }
+  .chapter-movement {
+    bottom: 22px;
+    width: 97px;
+    left: 18px;
+  }
+  .chapter-stick {
+    width: 90px;
+    height: 90px;
+  }
+  .chapter-stick i {
+    left: 22px;
+    top: 22px;
+  }
+  .chapter-combat {
+    bottom: 20px;
+    width: 223px;
+  }
+  .chapter-skills {
+    gap: 7px;
+    margin-bottom: 7px;
+  }
+  .chapter-skills button {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+  .chapter-physical button {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+  .chapter-physical .chapter-attack {
+    width: 59px;
+    height: 59px;
+  }
+  .chapter-interact {
+    bottom: 151px;
+    min-height: 34px !important;
+    font-size: 10px !important;
+    padding: 6px 9px !important;
+  }
+  .chapter-panel > header {
+    padding: 9px 16px;
+  }
+  .chapter-panel h2 {
+    font-size: 19px;
+  }
+  .chapter-panel-content {
+    padding: 10px 16px;
+  }
+  .chapter-intro {
+    padding: 13px 35px;
+  }
+  .chapter-intro-mark {
+    font-size: 29px;
+  }
+  .chapter-intro h1 {
+    font-size: 31px;
+    margin: 6px;
+  }
+  .chapter-intro-columns {
+    margin: 9px 0;
+    gap: 25px;
+  }
+  .chapter-intro-columns h3 {
+    font-size: 13px;
+  }
+  .chapter-intro-columns p {
+    font-size: 11px;
+    margin: 5px 0;
+  }
+  .chapter-intro > p {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .chapter-intro > button {
+    min-height: 38px;
+    margin: 6px 0;
+  }
+  .chapter-intro .chapter-save-note {
+    margin: 7px 0;
+    font-size: 9px;
+  }
+  .chapter-builds button {
+    padding: 8px;
+  }
+  .chapter-bag-tools {
+    padding-bottom: 7px;
+  }
+  .chapter-power {
+    padding: 10px;
+    gap: 4px;
+  }
+  .chapter-power strong {
+    font-size: 14px;
+  }
+}
+@media (orientation: portrait) {
+  .chapter-identity {
+    width: 235px;
+    top: 12px;
+  }
+  .chapter-nav {
+    display: grid;
+    grid-template-columns: repeat(2, 45px);
+    gap: 5px;
+    top: 12px;
+    right: 9px;
+  }
+  .chapter-nav button {
+    width: 45px;
+    min-height: 42px;
+    padding: 4px;
+  }
+  .chapter-location {
+    top: 172px;
+    max-width: 95%;
+    width: 95%;
+  }
+  .chapter-location strong {
+    font-size: 23px;
+  }
+  .chapter-status {
+    top: 101px;
+    flex-wrap: wrap;
+    max-width: 280px;
+    gap: 6px;
+  }
+  .chapter-wallet {
+    top: 115px;
+    right: 9px;
+    font-size: 9px;
+  }
+  .chapter-buff {
+    top: 140px;
+    right: 10px;
+  }
+  .chapter-tracker {
+    top: 232px;
+    width: calc(100% - 28px);
+    left: 14px;
+    max-width: 390px;
+  }
+  .chapter-interact {
+    bottom: 189px;
+    right: 14px;
+  }
+  .chapter-combat {
+    right: 12px;
+    bottom: 27px;
+    width: 222px;
+  }
+  .chapter-skills {
+    display: grid;
+    grid-template-columns: repeat(2, 46px);
+    justify-content: end;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .chapter-skills button {
+    width: 46px;
+    height: 46px;
+  }
+  .chapter-physical {
+    gap: 7px;
+  }
+  .chapter-physical button {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+  .chapter-physical .chapter-attack {
+    width: 58px;
+    height: 58px;
+  }
+  .chapter-movement {
+    left: 16px;
+    bottom: 33px;
+    width: 104px;
+  }
+  .chapter-stick {
+    width: 98px;
+    height: 98px;
+  }
+  .chapter-stick i {
+    left: 26px;
+    top: 26px;
+  }
+  .chapter-panel {
+    max-height: calc(100dvh - 20px);
+    border-radius: 16px;
+  }
+  .chapter-panel > header {
+    padding: 12px;
+  }
+  .chapter-panel h2 {
+    font-size: 20px;
+  }
+  .chapter-panel-content {
+    padding: 12px;
+  }
+  .chapter-intro {
+    padding: 30px 24px;
+  }
+  .chapter-intro h1 {
+    font-size: 35px;
+  }
+  .chapter-intro-columns {
+    display: block;
+    text-align: center;
+  }
+  .chapter-intro-columns > div {
+    margin: 20px 0;
+  }
+  .chapter-builds {
+    grid-template-columns: 1fr;
+  }
+  .chapter-builds button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px;
+  }
+  .chapter-builds button small {
+    flex: 1;
+    text-align: right;
+    font-size: 9px;
+  }
+  .chapter-builds strong {
+    min-width: 85px;
+  }
+  .chapter-item {
+    gap: 7px;
+    padding: 8px;
+  }
+  .chapter-item-icon {
+    font-size: 19px;
+  }
+  .chapter-item strong {
+    font-size: 12px;
+  }
+  .chapter-item-actions {
+    flex-direction: column;
+  }
+  .chapter-item-actions button {
+    min-height: 35px;
+  }
+  .chapter-map-grid {
+    grid-template-columns: 1fr;
+  }
+  .chapter-handbook {
+    grid-template-columns: 1fr;
+  }
+  .chapter-pause-actions {
+    grid-template-columns: 1fr;
+  }
+  .chapter-notice {
+    top: 43%;
+    max-width: 85vw;
+    width: max-content;
+    font-size: 11px;
+    padding: 9px 12px;
+  }
+}
+.chapter-boss {
+  position: absolute;
+  left: 50%;
+  top: 67px;
+  transform: translateX(-50%);
+  width: min(310px, 40vw);
+  background: #183b45e8;
+  border: 1px solid #e2b581;
+  border-radius: 10px;
+  padding: 7px 10px;
+  text-align: center;
+}
+.chapter-boss[hidden] {
+  display: none;
+}
+.chapter-boss strong {
+  font: 700 11px Georgia;
+  color: #ffe5af;
+}
+.chapter-boss > div {
+  height: 6px;
+  background: #263d45;
+  border-radius: 5px;
+  margin: 5px 0;
+  overflow: hidden;
+}
+.chapter-boss i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #e39d70, #ffe8a7);
+}
+.chapter-boss span {
+  font: 800 9px Arial;
+  color: #ffe9b0;
+  letter-spacing: 0.5px;
+}
+@media (orientation: portrait) {
+  .chapter-boss {
+    top: 319px;
+    width: calc(100% - 40px);
+    max-width: 350px;
+  }
+}

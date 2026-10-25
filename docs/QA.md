@@ -258,3 +258,29 @@ Current live-cast phone captures:
 | Ranger | [Live cast](qa/early-combat-ranger-landscape.png) | [Live cast](qa/early-combat-ranger-portrait.png) |
 
 HUD clearance: [NPC landscape](qa/npc-clearance-landscape.png), [NPC portrait](qa/npc-clearance-portrait.png), [upper ledge landscape](qa/upper-ledge-landscape.png), [upper ledge portrait](qa/upper-ledge-portrait.png).
+
+## Dawntrail: Vanguard and first-region preview
+
+Open **Play Vanguard chapter · The Lantern Vow** from the title, or use `?chapter=vanguard`. The original adventure remains accessible at `?` and its save key is unchanged. Chapter progress uses `aetherstory_dawntrail_v1`. This is the agreed Vanguard-first playable preview; other classes and the original long progression remain in the original adventure.
+
+Four independent maps replace the chapter world on portal travel: Lantern Hollow (1,800 wide), Sunpetal Fields (3,000), Bellroot Rise (2,400 wide / 1,500 high), Broken Sanctuary (1,700). Their terrain, vertical routes and creature populations differ. Field jellies/caps, Rise briarbacks/wisps, two named elites, an upper exploration bell and a painted guardian support the three-step regional story. Revisit discovered maps from the region board; first visits require portals. No map level gates or coordinate-based area walls are used in the chapter.
+
+Vanguard uses a new twenty-pose painted hammer/shield atlas, buffered jumps, coyote time, full-speed thumb directions, one aerial advance per jump, three-step basic combos and timed holy impacts. Sanctified Cleave and Aegis Rush start at Lv.1; Lantern Vow at Lv.3; Consecration at Lv.5; Judgment Bell at Lv.10. Skills consume mana, hit at individual strike times and have reusable cooldowns. Holding Guard reduces frontal damage; Bastion strengthens the block. Training offers all moves at Lv.10 and cannot serialize or overwrite chapter progress.
+
+Equipment has six slots, five rarities, variable base rolls and zero/one/two/three distinct percentage affixes by rarity. STR%, attack%, defense%, HP%, MP%, critical chance, attack speed and holy damage enter actual character calculations. Vowkeeper/Bastion/Dawnbringer builds and learned hammer mastery change combat values. Monster families favor different slots; ordinary drops are random (32% gear chance), named enemies guarantee Epic gear and the guardian guarantees Unique/Mythic. Bag comparison, equip-best, locks, protected low-gear dismantling and guaranteed paid star enhancements are implemented. Pip gathers nearby drops and heals 10% max HP on a 35s cooldown. Tonics restore 40% HP / 25% MP with an 8s cooldown and cost 45 gold.
+
+The new guardian was initially too short a fight (14.35s in the prepared simulation). After tuning, the same Lv.10 Epic-geared Dawnbringer with active movement/jump dodges defeats the 66,000-HP guardian in **124.62s (2:04.62)**, zero deaths, no tonics used. Raw report: [dawntrail-guardian-balance.json](qa/dawntrail-guardian-balance.json), reproducible with `node scripts/dawntrail-report.js`. This measures a specific dodge policy, not unattended AUTO survival. Standing in the guardian's warning with 1 HP kills the player in the death/respawn regression. The full original `npm run balance` report remains identical to the merged PR8 baseline, including fresh AUTO Lv.10 27:20 and zero AUTO-quest deaths in 35 minutes. No original progression timing is asserted for the separate chapter.
+
+Regression checks cover strike startup/hit-once, repeat casts after cooldown, jump buffering/air advance, supported rope descent, percentage stats, portal returns, protected items, save reload, corrupt data, unsaved training, death recovery and discovering the bell before its quest. Independent review identified the cooldown, early-bell and rope-bottom gaps; each was reproduced with a failing test and fixed.
+
+| View | 844×390 | 390×844 |
+| --- | --- | --- |
+| Build / percentage gear | [Bag & build](qa/dawntrail-build-landscape.png) | [Bag & build](qa/dawntrail-build-portrait.png) |
+| Live holy strikes | [Cleave](qa/dawntrail-cleave-landscape.png) | [Cleave](qa/dawntrail-cleave-portrait.png) |
+| Live ultimate | [Judgment Bell](qa/dawntrail-ultimate-landscape.png) | [Judgment Bell](qa/dawntrail-ultimate-portrait.png) |
+| Region | [Map board](qa/dawntrail-region-landscape.png) | [Map board](qa/dawntrail-region-portrait.png) |
+| Guardian | [Sanctuary](qa/dawntrail-guardian-landscape.png) | [Sanctuary & shield](qa/dawntrail-guardian-portrait.png) |
+
+Additional real travel: [Lantern Hollow](qa/dawntrail-village-landscape.png), [Bellroot Rise](qa/dawntrail-rise-landscape.png). Browser scenarios walk through all outbound maps, return through a portal, change/equip builds, cast with a running clock, hold the shield, reload saves and enter/leave unsaved training. These are Chromium viewport checks; physical iOS/Android testing remains unverified. AUTO hunts the current platform; automatic route/quest traversal and additional chapter classes/pets are outside this preview.
+
+Final verification: **149 unit tests passed** (10.3s); **55 browser tests passed** (4.1m), with a final five-scenario chapter rerun after guardian HP tuning. Production build and portable HTML passed; sixteen local assets are precached and the portable file is 7,483,662 bytes. The original balance report is unchanged. Chapter guardian simulation reports 124.62s with the stated prepared dodge policy.
