@@ -32,3 +32,33 @@ test('batch dismantle protects equipped, starred, locked and non-equipment items
   for(const protectedItem of [{...item,locked:true},{...item,stars:1},{...item,type:'quest'},{...item,type:'potion'}])assert.equal(canDismantle(protectedItem,[]),false);
   assert.equal(canDismantle(item,[item]),false);
 });
+
+import { createChapter, updateChapter, chapterAction, serializeChapter } from '../src/chapter/engine.js';
+const step=(s,n,input={})=>{for(let i=0;i<n;i++)updateChapter(s,input,1/120);};
+test('Vanguard strike damage waits for impact, applies once, and follows combo timing',()=>{
+  const s=createChapter();chapterAction(s,'travel','fields');
+  const e=s.enemies[0];s.player.x=e.x-70;s.player.y=e.y+e.h-s.player.h;
+  updateChapter(s,{attack:true},1/120);assert.equal(e.hp,e.maxHp);assert.equal(s.player.action.kind,'attack');
+  step(s,20);assert.ok(e.hp<e.maxHp);const after=e.hp;step(s,16);assert.equal(e.hp,after);
+});
+test('chapter portals replace the local world and save reload preserves gear/build without legacy fields',()=>{
+  const s=createChapter();chapterAction(s,'travel','fields');assert.equal(s.mapId,'fields');assert.equal(s.world.width,3000);assert.equal(s.player.x,175);
+  const gear=rollGear(42,'weapon','epic',1);s.player.inventory.push(gear);chapterAction(s,'equip',gear.id);chapterAction(s,'build','zeal');
+  const restored=createChapter(serializeChapter(s));assert.equal(restored.mapId,'fields');assert.equal(restored.build,'zeal');assert.equal(restored.player.equipment.weapon.id,gear.id);
+  assert.equal(serializeChapter(s).saveVersion,1);chapterAction(s,'travel','hollow');assert.equal(s.mapId,'hollow');assert.ok(s.player.x>1400);
+});
+test('percent affixes and build choices change actual attack, defense and maximum HP',()=>{
+  const s=createChapter(),before={...s.player};s.player.inventory.push({...rollGear(40,'armor','epic',1),id:'affix-test',affixes:[{stat:'hpPct',value:20},{stat:'attackPct',value:10}]});chapterAction(s,'equip','affix-test');
+  assert.ok(s.player.maxHp>before.maxHp);assert.ok(s.player.attack>before.attack);
+  const hp=s.player.maxHp;chapterAction(s,'build','bulwark');assert.ok(s.player.maxHp>hp);const armor=s.player.defense;chapterAction(s,'build','zeal');assert.ok(s.player.defense<armor);
+});
+test('buffered jump fires after landing and air advance can only occur once per jump',()=>{
+  const s=createChapter();s.player.y=s.world.ground-s.player.h-3;s.player.grounded=false;s.player.vy=120;
+  updateChapter(s,{jump:true},1/120);step(s,8);assert.ok(s.player.vy<0);assert.equal(s.player.grounded,false);
+  step(s,20);updateChapter(s,{jump:true},1/120);assert.equal(s.player.airAdvanceUsed,true);const n=s.effects.length;updateChapter(s,{jump:true},1/120);assert.equal(s.effects.length,n);
+});
+test('training sessions cannot serialize over chapter progress and malformed saves remain finite',()=>{
+  const s=createChapter({saveVersion:1,level:NaN,mapId:'missing',gold:-100,inventory:[null,{type:'weapon'}]});
+  assert.equal(s.mapId,'hollow');assert.equal(s.player.level,1);assert.ok(Number.isFinite(s.player.hp));assert.equal(s.player.inventory.length,0);
+  const training=createChapter(null,{training:true});assert.equal(training.player.level,10);assert.equal(serializeChapter(training),null);
+});
