@@ -46,22 +46,57 @@ export const BUFF_DURATION = 12,
   BUFF_COOLDOWN = 45,
   BUFF_LEVEL = 3,
   BUFF_MP = 15;
-export function growthStats(classId, level) {
+export function growthStats(classId, level, allocation = {}) {
   const attributes = { STR: 4, DEX: 4, INT: 4, LUK: 4 };
   const [main, secondary] = ATTRIBUTES[classId];
   attributes[main] += (level - 1) * 3;
   attributes[secondary] += level - 1;
+  for (const stat of ATTRIBUTE_KEYS) attributes[stat] += allocation[stat] || 0;
   return {
     attributes,
     main,
     secondary,
-    attackGrowth: attributes[main] + attributes[secondary] - 8,
+    attackGrowth: ((attributes[main] - 4) * 4 + attributes[secondary] - 4) / 3.25,
   };
 }
-export const combatPower = (p) =>
-  Math.round(p.attack * 12 + p.defense * 8 + p.maxHp * 0.4 + p.maxMp * 0.2);
+export const combatPower = (p) => {
+  const expected =
+    p.attack *
+    p.attackSpeed *
+    (1 + p.critRate * (p.critDamage - 1)) *
+    (0.7 + 0.3 * p.skillDamageMultiplier) *
+    ((p.minDamageMultiplier + p.maxDamageMultiplier) / 2);
+  return Math.round(expected * 12 + p.defense * 8 + p.maxHp * 0.4 + p.maxMp * 0.2);
+};
 export function lootRarity(roll, boss = false, rank = 0) {
   if (boss) return roll < 0.08 ? 'mythic' : roll < 0.3 ? 'unique' : 'epic';
   if (rank >= 1 && roll < 0.015) return 'unique';
   return roll < 0.14 ? 'epic' : roll < 0.75 ? 'rare' : 'normal';
+}
+
+export const ATTRIBUTE_KEYS = ['STR', 'DEX', 'INT', 'LUK'];
+export const ATTRIBUTE_DETAILS = {
+  STR: 'Maximum HP +2 · Defense +0.2 per point',
+  DEX: 'Attack speed +0.1% · Critical chance +0.05% per point',
+  INT: 'Maximum MP +3 · Skill damage +0.1% per point',
+  LUK: 'Critical chance +0.1% · Critical damage +0.2% per point',
+};
+export const MASTERY_NAMES = {
+  vanguard: 'Dawnsteel Mastery',
+  arcanist: 'Aether Mastery',
+  nightblade: 'Shadowcraft Mastery',
+  ranger: 'Windbow Mastery',
+};
+export function normalizeAllocation(value, level) {
+  const result = Object.fromEntries(ATTRIBUTE_KEYS.map((k) => [k, 0]));
+  if (!value || typeof value !== 'object') return result;
+  for (const k of ATTRIBUTE_KEYS) {
+    const n = value[k];
+    if (n !== undefined && (!Number.isSafeInteger(n) || n < 0))
+      return Object.fromEntries(ATTRIBUTE_KEYS.map((k) => [k, 0]));
+    result[k] = n || 0;
+  }
+  return Object.values(result).reduce((a, b) => a + b, 0) <= Math.max(0, (level - 1) * 5)
+    ? result
+    : Object.fromEntries(ATTRIBUTE_KEYS.map((k) => [k, 0]));
 }

@@ -4,9 +4,11 @@ import creaturesUrl from './assets/creatures.webp';
 import cavernUrl from './assets/crystal-cavern.webp';
 import altarUrl from './assets/ember-altar.webp';
 import pipUrl from './assets/pip.webp';
+import skillsUrl from './assets/skills.webp';
+import skillAtlas from './assets/skills.atlas.json';
 import { atlasCellBounds } from './game/art-layout.js';
 
-function load(url, columns = 0, rows = 0) {
+function load(url, columns = 0, rows = 0, grid = null) {
   const image = new Image(),
     asset = { image, frames: [], gutter: 12 };
   asset.ready = new Promise((resolve) => {
@@ -14,8 +16,8 @@ function load(url, columns = 0, rows = 0) {
       for (let row = 0; row < rows; row++)
         for (let col = 0; col < columns; col++) {
           const b = atlasCellBounds(
-            image.width,
-            image.height,
+            grid ? grid.cellWidth * columns : image.width,
+            grid ? grid.cellHeight * rows : image.height,
             columns,
             rows,
             col,
@@ -27,7 +29,17 @@ function load(url, columns = 0, rows = 0) {
           frame.height = b.height;
           const c = frame.getContext('2d');
           c.imageSmoothingEnabled = false;
-          c.drawImage(image, b.sx, b.sy, b.sw, b.sh, b.gutter, b.gutter, b.sw, b.sh);
+          c.drawImage(
+            image,
+            b.sx + (grid?.origin.x || 0),
+            b.sy + (grid?.origin.y || 0),
+            b.sw,
+            b.sh,
+            b.gutter,
+            b.gutter,
+            b.sw,
+            b.sh,
+          );
           asset.frames.push(frame);
         }
       resolve(image);
@@ -42,7 +54,8 @@ export const valleyArt = load(valleyUrl),
   creatureArt = load(creaturesUrl, 4, 4),
   cavernArt = load(cavernUrl),
   altarArt = load(altarUrl),
-  pipArt = load(pipUrl, 2, 2);
+  pipArt = load(pipUrl, 2, 2),
+  skillArt = load(skillsUrl, 5, 4, skillAtlas);
 const assets = {
   background: valleyArt,
   heroes: heroArt,
@@ -50,6 +63,7 @@ const assets = {
   cavern: cavernArt,
   altar: altarArt,
   pip: pipArt,
+  skills: skillArt,
 };
 export const artReady = Promise.all(Object.values(assets).map((asset) => asset.ready));
 export function artStatus() {

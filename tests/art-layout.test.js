@@ -12,3 +12,14 @@ test('fractional atlas cells never sample neighbouring frames and have real tran
       assert.equal(b.height - b.sh, 24);
     }
 });
+
+test('five-by-four skill atlas source rectangles remain within equal fractional cells', () => {
+  for (let row = 0; row < 4; row++)
+    for (let col = 0; col < 5; col++) {
+      const b = atlasCellBounds(1536, 1024, 5, 4, col, row);
+      assert.ok(b.sx > (col * 1536) / 5);
+      assert.ok(b.sx + b.sw < ((col + 1) * 1536) / 5);
+      assert.ok(b.sy > row * 256);
+      assert.ok(b.sy + b.sh < (row + 1) * 256);
+    }
+});

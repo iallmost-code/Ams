@@ -190,3 +190,71 @@ Additional ultimate captures: [Arcanist](qa/rpg-ultimate-arcanist-landscape.png)
 Additional safety: area readiness uses permanent attack/defense, so a temporary buff cannot qualify an under-geared character for a harder map. The quick-buff-tap regression covers frames with no physics step. The final full suite also runs the embedded standalone HTML with no network, checking all six artwork files and the new RPG controls.
 
 RPG verification: `npm test` passed all **118 tests**; the full **39-test** browser suite passed in **2.4 minutes**, including the portable HTML smoke. Dedicated new phone cases cover all four buffs/ultimates, portrait touch casting, rarity/category views and non-overlapping timer/banner lanes. Rank-30 skills show MAX RANK and disable further upgrades. Production and standalone builds passed, retaining thirteen local precached assets.
+
+
+## v1.1.0: spendable attributes, passive mastery and painted primary skills
+
+This update runs on `feat/real-attributes-mastery`, based on current main. Original combat design notes are documented in [REFERENCE_REVIEW.md](REFERENCE_REVIEW.md).
+
+Every level grants 5 AP and 2 SP. Main/secondary attributes contribute at a 4:1 ratio, normalized by 3.25 so automatic 3-main/1-secondary growth keeps the prior four base attack per level before new investments. All four attributes have real additional combat effects: STR +2 max HP / +0.2 defense per point; DEX +0.1% attack speed (25% cap) / +0.05 percentage points critical chance; INT +3 max MP / +0.1% skill damage; LUK +0.1 points critical chance / +0.2 points critical damage. Damage/skill/critical values and attack cooldowns consume these attributes directly.
+
+Stats offers individual spending, recommended main-stat assignment and reset. Available AP is derived from `(level−1)×5 − assigned`, never trusted from a saved counter. Old saves receive their earned points; malformed or over-budget allocation is rejected. Save v4 remains compatible through optional additive fields. Learned mastery costs one shared SP per rank, up to 20 ranks, and raises base attack 2%, skill damage 1% and minimum damage by 0.5 percentage points per rank. Normal damage rolls range from 90–110% before mastery. Shop gold training remains separate.
+
+Level-up summaries report measured attack, HP and MP deltas rather than fixed labels. Example with starter equipment, reaching Lv.2, assigning its 5 AP to the main stat and learning mastery rank 1:
+
+| Class | Attack Lv.1 → built Lv.2 | Max HP | Max MP |
+| --- | --- | --- | --- |
+| Vanguard | 31 → 42 | 180 → 224 | 75 → 82 |
+| Arcanist | 34 → 45 | 135 → 163 | 135 → 166 |
+| Nightblade | 35 → 46 | 145 → 173 | 95 → 102 |
+| Ranger | 32 → 43 | 155 → 185 | 105 → 112 |
+
+Raw examples: [attribute-growth-example.json](qa/attribute-growth-example.json). AP and mastery tests also compare actual enemy HP loss, not only displayed values.
+
+### Skills and sprite sheet
+
+`src/assets/skills.png` is now a cleaned 1536×1024 RGBA source sheet. Twenty equal 306×256 cells sit inside a 3px horizontal outer margin. Every frame is centered, with at least 32 transparent pixels on every edge; row-relative frame sizes are preserved. `scripts/prepare-skill-atlas.py` also exports `skills.webp` at quality 90 and verifies its alpha channel exactly matches the cleaned PNG. The shipped WebP is **275,400 bytes**, down from the original **1,896,460-byte PNG** (85.5% smaller). The atlas, Vite import, generated service-worker precache and embedded portable HTML use WebP; the editable PNG is excluded from the runtime build.
+
+Primary arts are approximately 1.5× their previous painted footprint, last 1.25s and hold frame 3 for 650ms. Every skill slot, including nova/ultimate, renders after the hero and Pip. All eight current phone captures use real casts with a running browser clock. Browser tests observe the full-power frame for at least 500ms; no clock install/pause or injected effects are used.
+
+NPC name pills remain 11 CSS pixels, below the NPC’s feet, and move sideways around the measured HUD rectangles. A thin leader line preserves their anchor when displaced. The camera reserves space beneath the top-right buttons for upper ledges whenever the player and ledge can fit together; ground framing stays unchanged. Phone tests reach the ledges using normal movement and climbing and assert visible highest-platform creatures clear the header.
+
+The fixed-step buffer now preserves edges even for zero/negative render-clock deltas immediately after menu close. This fixes the intermittent lost buff key rather than adding arbitrary delays or retries. Version 1.1.0 is visible in Settings/title; an update-ready button preserves saves and restarts an already-installed client when its controller changes.
+
+### Balance
+
+The unchanged real-engine benchmark passed its assertions. It does not spend the new optional AP/mastery points automatically; its previous gear/gold policy is retained. Raw report: [attributes-mastery-balance.json](qa/attributes-mastery-balance.json).
+
+| Scenario | Previous | Current |
+| --- | --- | --- |
+| Fresh AUTO → Lv.10 | 27:16 | 27:20 |
+| AUTO-quest → Lv.10 | 27:25 | 27:07 |
+| Gear/gold progression → Lv.25 | 3:44:18 | 3:31:55 |
+| Geared boss + benchmark dodges | 2:16 | 2:16 |
+| AUTO-quest deaths in 35 min | 0 | 0 |
+| Manual starter gear versus boss | dies | dies |
+
+### Verification and phone captures
+
+The cleanup rerun produced a report **identical in every field** to [attributes-mastery-balance.json](qa/attributes-mastery-balance.json): fresh AUTO Lv.10 27:20, AUTO-quest Lv.10 27:07, paid Lv.25 3:31:55, prepared boss 2:15.87, and zero deaths in 35 minutes of hands-off AUTO-quest. Combat values, XP, cooldowns and AI were not changed by this cleanup.
+
+`npm test`: **133 passed** in 13.8s. `npm run build` and `npm run build:html`: passed; production precaches 14 local files, including the skill WebP, and the portable HTML is 6,036,620 bytes. `npm run test:e2e`: **50 passed in 3.3 minutes** locally, including eight live primary casts, both HUD-clearance paths, offline installed reload and the standalone HTML without external requests. The source-export reproducibility check regenerated byte-identical PNG, WebP and atlas JSON from the original input. Full balance output is unchanged. Physical iPhone/Safari performance remains unverified; automated phone checks run Chromium at the two stated viewport sizes.
+
+| Phone | Real attribute assignment | Learned mastery | Painted early combat |
+| --- | --- | --- | --- |
+| 844×390 | [Stats](qa/attribute-stats-landscape.png) | [Mastery](qa/mastery-landscape.png) | [Vanguard](qa/early-combat-vanguard-landscape.png) |
+| 390×844 | [Stats](qa/attribute-stats-portrait.png) | [Mastery](qa/mastery-portrait.png) | [Vanguard](qa/early-combat-vanguard-portrait.png) |
+
+Other low-level combat: [Arcanist](qa/early-combat-arcanist-landscape.png), [Nightblade](qa/early-combat-nightblade-landscape.png), [Ranger](qa/early-combat-ranger-landscape.png). These screenshots use actual Lv.2 characters with their earned five AP and two SP; no late-game skill unlocks are granted for the early-skill pictures.
+
+
+Current live-cast phone captures:
+
+| Class | 844×390 | 390×844 |
+| --- | --- | --- |
+| Vanguard | [Live cast](qa/early-combat-vanguard-landscape.png) | [Live cast](qa/early-combat-vanguard-portrait.png) |
+| Arcanist | [Live cast](qa/early-combat-arcanist-landscape.png) | [Live cast](qa/early-combat-arcanist-portrait.png) |
+| Nightblade | [Live cast](qa/early-combat-nightblade-landscape.png) | [Live cast](qa/early-combat-nightblade-portrait.png) |
+| Ranger | [Live cast](qa/early-combat-ranger-landscape.png) | [Live cast](qa/early-combat-ranger-portrait.png) |
+
+HUD clearance: [NPC landscape](qa/npc-clearance-landscape.png), [NPC portrait](qa/npc-clearance-portrait.png), [upper ledge landscape](qa/upper-ledge-landscape.png), [upper ledge portrait](qa/upper-ledge-portrait.png).

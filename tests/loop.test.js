@@ -62,3 +62,17 @@ test('invalid elapsed time cannot advance or corrupt the simulation', () => {
   clock.advance(1 / 120, {});
   assert.equal(count, 1);
 });
+
+// Menu close can reset the clock after a queued RAF timestamp. Never lose its tap.
+test('skill and buff taps survive zero or backward render timestamps', () => {
+  for (const elapsed of [0, -0.001]) {
+    const events = [],
+      clock = createFixedStepper((input) => events.push(input));
+    clock.advance(elapsed, { buff: true, skill: true });
+    clock.advance(1 / 120, {});
+    assert.equal(events[0].buff, true);
+    assert.equal(events[0].skill, true);
+    clock.advance(1 / 120, {});
+    assert.equal(events[1].buff, false);
+  }
+});

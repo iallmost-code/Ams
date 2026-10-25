@@ -1,3 +1,4 @@
+import { normalizeAllocation } from './game/rpg.js';
 import { normalizeDaily } from './game/daily.js';
 import { normalizeStoryProgress } from './game/quests.js';
 /** Local-only, versioned progress. Storage failures must never stop a session. */
@@ -156,6 +157,12 @@ function normalize(value) {
       gold: number(value.player.gold, 0, 1e9, 300),
       deaths: number(value.player.deaths, 0, 1e9, 0),
     },
+    ...(value.attributeAllocation
+      ? { attributeAllocation: normalizeAllocation(value.attributeAllocation, level) }
+      : {}),
+    ...(value.masteryRank !== undefined
+      ? { masteryRank: number(value.masteryRank, 0, 20, 0) }
+      : {}),
     upgrades: {
       vitality: number(value.upgrades?.vitality, 0, 10, 0),
       mastery: number(value.upgrades?.mastery, 0, 10, 0),
