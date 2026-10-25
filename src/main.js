@@ -344,6 +344,7 @@ window.aetherStory = Object.freeze({
   getDiagnostics() {
     return {
       version: RELEASE_VERSION,
+      scene: structuredClone(renderer.sceneDiagnostics || {}),
       text: structuredClone(renderer.textDiagnostics || { nameplates: [], floating: [] }),
       art: artStatus(),
       fps,
@@ -389,6 +390,8 @@ function frame(now) {
     openPanel('dialogue');
     persist();
   }
+  if (!renderer.hudOcclusions || hudElapsed + elapsed >= 0.08)
+    renderer.hudOcclusions = ui.getHudOcclusions();
   renderer.render(state, elapsed);
   hudElapsed += elapsed;
   if (hudElapsed >= 0.08) {

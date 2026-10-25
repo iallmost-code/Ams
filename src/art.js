@@ -4,10 +4,11 @@ import creaturesUrl from './assets/creatures.webp';
 import cavernUrl from './assets/crystal-cavern.webp';
 import altarUrl from './assets/ember-altar.webp';
 import pipUrl from './assets/pip.webp';
-import skillsUrl from './assets/skills.png';
+import skillsUrl from './assets/skills.webp';
+import skillAtlas from './assets/skills.atlas.json';
 import { atlasCellBounds } from './game/art-layout.js';
 
-function load(url, columns = 0, rows = 0, centered = false) {
+function load(url, columns = 0, rows = 0, grid = null) {
   const image = new Image(),
     asset = { image, frames: [], gutter: 12 };
   asset.ready = new Promise((resolve) => {
@@ -15,8 +16,8 @@ function load(url, columns = 0, rows = 0, centered = false) {
       for (let row = 0; row < rows; row++)
         for (let col = 0; col < columns; col++) {
           const b = atlasCellBounds(
-            image.width,
-            image.height,
+            grid ? grid.cellWidth * columns : image.width,
+            grid ? grid.cellHeight * rows : image.height,
             columns,
             rows,
             col,
@@ -28,44 +29,18 @@ function load(url, columns = 0, rows = 0, centered = false) {
           frame.height = b.height;
           const c = frame.getContext('2d');
           c.imageSmoothingEnabled = false;
-          c.drawImage(image, b.sx, b.sy, b.sw, b.sh, b.gutter, b.gutter, b.sw, b.sh);
-          if (centered) {
-            // Source files stay untouched. Align texture content once at load time.
-            const rgba = c.getImageData(0, 0, frame.width, frame.height).data;
-            let left = frame.width,
-              top = frame.height,
-              right = -1,
-              bottom = -1;
-            for (let y = 0; y < frame.height; y++)
-              for (let x = 0; x < frame.width; x++)
-                if (rgba[(y * frame.width + x) * 4 + 3] > 8) {
-                  left = Math.min(left, x);
-                  right = Math.max(right, x);
-                  top = Math.min(top, y);
-                  bottom = Math.max(bottom, y);
-                }
-            if (right >= left) {
-              const aligned = document.createElement('canvas');
-              aligned.width = frame.width;
-              aligned.height = frame.height;
-              const ac = aligned.getContext('2d'),
-                w = right - left + 1,
-                h = bottom - top + 1,
-                scale = 0.8;
-              ac.drawImage(
-                frame,
-                left,
-                top,
-                w,
-                h,
-                (frame.width - w * scale) / 2,
-                (frame.height - h * scale) / 2,
-                w * scale,
-                h * scale,
-              );
-              asset.frames.push(aligned);
-            } else asset.frames.push(frame);
-          } else asset.frames.push(frame);
+          c.drawImage(
+            image,
+            b.sx + (grid?.origin.x || 0),
+            b.sy + (grid?.origin.y || 0),
+            b.sw,
+            b.sh,
+            b.gutter,
+            b.gutter,
+            b.sw,
+            b.sh,
+          );
+          asset.frames.push(frame);
         }
       resolve(image);
     };
@@ -80,7 +55,7 @@ export const valleyArt = load(valleyUrl),
   cavernArt = load(cavernUrl),
   altarArt = load(altarUrl),
   pipArt = load(pipUrl, 2, 2),
-  skillArt = load(skillsUrl, 5, 4, true);
+  skillArt = load(skillsUrl, 5, 4, skillAtlas);
 const assets = {
   background: valleyArt,
   heroes: heroArt,

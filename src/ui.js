@@ -1286,6 +1286,27 @@ export function createUI({ onAction = () => {}, onSettings = () => {} } = {}) {
     isModalOpen() {
       return Boolean(panel) || !started;
     },
+    getHudOcclusions() {
+      return [
+        '.identity',
+        '.top-right',
+        '.story-strip',
+        '.field-info',
+        '.movement',
+        '.bottom-center',
+        '.combat-controls',
+        '.buff-deck',
+        '.experience',
+        '.portrait-tip',
+      ].flatMap((selector) => {
+        const el = $(selector);
+        if (!el || el.hidden || !el.getClientRects().length) return [];
+        const r = el.getBoundingClientRect();
+        return r.width && r.height
+          ? [{ kind: selector.slice(1), x: r.x, y: r.y, width: r.width, height: r.height }]
+          : [];
+      });
+    },
     showUpdate() {
       $('.update-ready').hidden = false;
     },

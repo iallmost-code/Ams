@@ -1,3 +1,4 @@
+import { PRIMARY_SKILL_SECONDS } from './skill-presentation.js';
 import {
   BUFFS,
   BUFF_DURATION,
@@ -1049,8 +1050,8 @@ function combat(s, input) {
     p.skillAnimation = 0.55;
     p.activeSkill = i;
     effect(s, def.style, center(p), p.y + p.h * 0.4, {
-      life: i === 3 ? 1.6 : 0.75,
-      maxLife: i === 3 ? 1.6 : 0.75,
+      life: i === 3 ? 1.6 : i === 0 ? PRIMARY_SKILL_SECONDS : 0.75,
+      maxLife: i === 3 ? 1.6 : i === 0 ? PRIMARY_SKILL_SECONDS : 0.75,
       range: def.range,
       classId: s.classId,
       skillIndex: i,

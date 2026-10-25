@@ -8,6 +8,9 @@ for (const [classId, width, height] of [
   ['nightblade', 844, 390],
   ['ranger', 844, 390],
   ['vanguard', 390, 844],
+  ['arcanist', 390, 844],
+  ['nightblade', 390, 844],
+  ['ranger', 390, 844],
 ]) {
   test(`real AP, learned mastery and early skill effects ${classId} ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
@@ -49,22 +52,45 @@ for (const [classId, width, height] of [
     expect(loaded.masteryRank).toBe(1);
     expect(loaded.player.ap).toBe(0);
     expect(loaded.attributeAllocation).toEqual(mastered.attributeAllocation);
-    await page.clock.install({ time: new Date('2026-10-25T12:00:00Z') });
-    await page.clock.pauseAt(new Date('2026-10-25T12:00:01Z'));
-    await page.locator('.skill-0').tap({ force: true });
-    await page.clock.runFor(300);
+    // Observe real animation frames; never install or pause the browser clock.
+    await page.evaluate(() => {
+      window.castFrames = [];
+      const observe = () => {
+        const scene = window.aetherStory.getDiagnostics().scene;
+        for (const cast of scene.skills || [])
+          if (cast.slot === 0) window.castFrames.push({ ...cast, at: performance.now() });
+        requestAnimationFrame(observe);
+      };
+      requestAnimationFrame(observe);
+    });
+    await page.locator('.skill-0').tap();
     await expect
-      .poll(async () => (await snapshot(page)).effects.some((e) => e.skillIndex === 0))
+      .poll(
+        () =>
+          page.evaluate(() =>
+            window.aetherStory
+              .getDiagnostics()
+              .scene.skills.some((e) => e.slot === 0 && e.fullPower),
+          ),
+        { intervals: [20] },
+      )
       .toBe(true);
+    await page.screenshot({ path: `docs/qa/early-combat-${classId}-${orientation}.png` });
     if (classId === 'vanguard' && width === 844)
       await page.screenshot({ path: 'docs/qa/early-first-skill-vanguard.png' });
-    await page.locator('.skill-1').tap({ force: true });
-    await page.clock.runFor(140);
-    const combat = await snapshot(page);
-    expect(
-      combat.effects.some((e) => e.type === 'skill-impact') || combat.kills > loaded.kills,
-    ).toBe(true);
-    await page.screenshot({ path: `docs/qa/early-combat-${classId}-${orientation}.png` });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const frames = window.castFrames.filter((f) => f.fullPower);
+            return frames.length ? frames.at(-1).at - frames[0].at : 0;
+          }),
+        { intervals: [50] },
+      )
+      .toBeGreaterThanOrEqual(500);
+    expect(await page.evaluate(() => window.castFrames.every((f) => f.foreground))).toBe(true);
+    const cached = await page.request.get('/sw.js');
+    expect(await cached.text()).toMatch(/skills-[^"']+\.webp/);
     expect(errors).toEqual([]);
   });
 }

@@ -194,7 +194,7 @@ RPG verification: `npm test` passed all **118 tests**; the full **39-test** brow
 
 ## v1.1.0: spendable attributes, passive mastery and painted primary skills
 
-This update runs on `feat/real-attributes-mastery`, based on current main. The reference investigation is documented in [REFERENCE_REVIEW.md](REFERENCE_REVIEW.md).
+This update runs on `feat/real-attributes-mastery`, based on current main. Original combat design notes are documented in [REFERENCE_REVIEW.md](REFERENCE_REVIEW.md).
 
 Every level grants 5 AP and 2 SP. Main/secondary attributes contribute at a 4:1 ratio, normalized by 3.25 so automatic 3-main/1-secondary growth keeps the prior four base attack per level before new investments. All four attributes have real additional combat effects: STR +2 max HP / +0.2 defense per point; DEX +0.1% attack speed (25% cap) / +0.05 percentage points critical chance; INT +3 max MP / +0.1% skill damage; LUK +0.1 points critical chance / +0.2 points critical damage. Damage/skill/critical values and attack cooldowns consume these attributes directly.
 
@@ -213,7 +213,11 @@ Raw examples: [attribute-growth-example.json](qa/attribute-growth-example.json).
 
 ### Skills and sprite sheet
 
-`src/assets/skills.png` is a 1536×1024 RGBA sheet with four rows × five frames, generated as original painted effects. It animates the four primary arts with continuous movement and crossfades; other slots add original class-specific lightning, ground eruptions, shuriken, rain and ultimate choreography. Actual victims receive timed impact art. Runtime skill tiles are alpha-centered and padded before sampling, including fractional 307.2-pixel column boundaries. The source PNG is currently unchanged from the generator; a separate pixel-clean export pass awaits the user's method preference. Screenshot frames are paused with Playwright's clock after real casts to capture the short animation accurately; damage and cooldowns still come from the real engine.
+`src/assets/skills.png` is now a cleaned 1536×1024 RGBA source sheet. Twenty equal 306×256 cells sit inside a 3px horizontal outer margin. Every frame is centered, with at least 32 transparent pixels on every edge; row-relative frame sizes are preserved. `scripts/prepare-skill-atlas.py` also exports `skills.webp` at quality 90 and verifies its alpha channel exactly matches the cleaned PNG. The shipped WebP is **275,400 bytes**, down from the original **1,896,460-byte PNG** (85.5% smaller). The atlas, Vite import, generated service-worker precache and embedded portable HTML use WebP; the editable PNG is excluded from the runtime build.
+
+Primary arts are approximately 1.5× their previous painted footprint, last 1.25s and hold frame 3 for 650ms. Every skill slot, including nova/ultimate, renders after the hero and Pip. All eight current phone captures use real casts with a running browser clock. Browser tests observe the full-power frame for at least 500ms; no clock install/pause or injected effects are used.
+
+NPC name pills remain 11 CSS pixels, below the NPC’s feet, and move sideways around the measured HUD rectangles. A thin leader line preserves their anchor when displaced. The camera reserves space beneath the top-right buttons for upper ledges whenever the player and ledge can fit together; ground framing stays unchanged. Phone tests reach the ledges using normal movement and climbing and assert visible highest-platform creatures clear the header.
 
 The fixed-step buffer now preserves edges even for zero/negative render-clock deltas immediately after menu close. This fixes the intermittent lost buff key rather than adding arbitrary delays or retries. Version 1.1.0 is visible in Settings/title; an update-ready button preserves saves and restarts an already-installed client when its controller changes.
 
@@ -232,7 +236,9 @@ The unchanged real-engine benchmark passed its assertions. It does not spend the
 
 ### Verification and phone captures
 
-`npm test`: 126 passed. Production build and standalone HTML export passed. `npm run test:e2e`: 45 passed in 2.9 minutes locally, including actual point spending, passive learning, reload, all four early-skill effects, installed-client update handling and the seven-artwork portable export. Full multi-hour balance checks remain outside CI's unit suite. Physical iPhone/Safari performance remains unverified.
+The cleanup rerun produced a report **identical in every field** to [attributes-mastery-balance.json](qa/attributes-mastery-balance.json): fresh AUTO Lv.10 27:20, AUTO-quest Lv.10 27:07, paid Lv.25 3:31:55, prepared boss 2:15.87, and zero deaths in 35 minutes of hands-off AUTO-quest. Combat values, XP, cooldowns and AI were not changed by this cleanup.
+
+`npm test`: **133 passed** in 13.8s. `npm run build` and `npm run build:html`: passed; production precaches 14 local files, including the skill WebP, and the portable HTML is 6,036,620 bytes. `npm run test:e2e`: **50 passed in 3.3 minutes** locally, including eight live primary casts, both HUD-clearance paths, offline installed reload and the standalone HTML without external requests. The source-export reproducibility check regenerated byte-identical PNG, WebP and atlas JSON from the original input. Full balance output is unchanged. Physical iPhone/Safari performance remains unverified; automated phone checks run Chromium at the two stated viewport sizes.
 
 | Phone | Real attribute assignment | Learned mastery | Painted early combat |
 | --- | --- | --- | --- |
@@ -240,3 +246,15 @@ The unchanged real-engine benchmark passed its assertions. It does not spend the
 | 390×844 | [Stats](qa/attribute-stats-portrait.png) | [Mastery](qa/mastery-portrait.png) | [Vanguard](qa/early-combat-vanguard-portrait.png) |
 
 Other low-level combat: [Arcanist](qa/early-combat-arcanist-landscape.png), [Nightblade](qa/early-combat-nightblade-landscape.png), [Ranger](qa/early-combat-ranger-landscape.png). These screenshots use actual Lv.2 characters with their earned five AP and two SP; no late-game skill unlocks are granted for the early-skill pictures.
+
+
+Current live-cast phone captures:
+
+| Class | 844×390 | 390×844 |
+| --- | --- | --- |
+| Vanguard | [Live cast](qa/early-combat-vanguard-landscape.png) | [Live cast](qa/early-combat-vanguard-portrait.png) |
+| Arcanist | [Live cast](qa/early-combat-arcanist-landscape.png) | [Live cast](qa/early-combat-arcanist-portrait.png) |
+| Nightblade | [Live cast](qa/early-combat-nightblade-landscape.png) | [Live cast](qa/early-combat-nightblade-portrait.png) |
+| Ranger | [Live cast](qa/early-combat-ranger-landscape.png) | [Live cast](qa/early-combat-ranger-portrait.png) |
+
+HUD clearance: [NPC landscape](qa/npc-clearance-landscape.png), [NPC portrait](qa/npc-clearance-portrait.png), [upper ledge landscape](qa/upper-ledge-landscape.png), [upper ledge portrait](qa/upper-ledge-portrait.png).

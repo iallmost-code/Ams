@@ -1,3 +1,5 @@
+import { effectIsForeground, primaryKeyframes } from './game/skill-presentation.js';
+import { placeNameplate, clearUpperPlatformCamera } from './game/view-layout.js';
 import { drawSkillVfx, drawImpactVfx } from './skill-vfx.js';
 import { worldToScreen, placeFloatingTexts } from './game/screen-text.js';
 import { getStoryView } from './game/quests.js';
@@ -138,6 +140,7 @@ export class Renderer {
   }
   render(state, dt = 1 / 60) {
     this.textDiagnostics = { nameplates: [], floating: [] };
+    this.sceneDiagnostics = { skills: [], enemies: [], hud: this.hudOcclusions || [] };
     if (!state?.player) return;
     const c = this.ctx,
       p = state.player;
@@ -157,11 +160,29 @@ export class Renderer {
       0,
       Math.max(0, (world.width || 4800) - this.width),
     );
-    const targetY = clamp(
+    let targetY = clamp(
       p.y + (p.h || 54) - this.height * 0.73,
       0,
       Math.max(0, (world.height || 1000) - this.height + 110),
     );
+    const viewport = { width: this.canvas.width / this.dpr, height: this.canvas.height / this.dpr },
+      cssScale = this.scale / this.dpr;
+    const headerBottom = (this.hudOcclusions || [])
+      .filter((r) => r.kind === 'top-right')
+      .reduce((v, r) => Math.max(v, r.y + r.height), 0);
+    const clearY = (y) =>
+      clearUpperPlatformCamera(
+        y,
+        p.y + p.h,
+        world.platforms || [],
+        state.enemies || [],
+        targetX,
+        this.width,
+        viewport,
+        cssScale,
+        headerBottom,
+      );
+    targetY = clearY(targetY);
     const follow = this.motion ? 1 - Math.exp(-Math.min(dt || 1 / 60, 0.1) * 6) : 1;
     if (!this.initialized || Math.abs(targetX - this.camera.x) > this.width * 1.4) {
       this.camera.x = targetX;
@@ -171,6 +192,8 @@ export class Renderer {
       this.camera.x += (targetX - this.camera.x) * follow;
       this.camera.y += (targetY - this.camera.y) * follow;
     }
+    this.camera.y = clearY(this.camera.y);
+    this.sceneDiagnostics.camera = { ...this.camera };
     c.setTransform(this.scale, 0, 0, this.scale, 0, 0);
     c.clearRect(0, 0, this.width, 720);
     this.drawBackground();
@@ -543,8 +566,27 @@ export class Renderer {
     c.textAlign = 'center';
     const width = Math.min(c.measureText(text).width + 14, viewWidth - 8),
       height = 19;
-    x = clamp(point.x, width / 2 + 4, viewWidth - width / 2 - 4);
-    y = point.y + offset;
+    const box = placeNameplate(
+      point,
+      width,
+      height,
+      { width: viewWidth, height: this.canvas.height / this.dpr },
+      [...(this.hudOcclusions || []), ...this.textDiagnostics.nameplates],
+    );
+    if (!box) {
+      c.restore();
+      return;
+    }
+    x = box.x + width / 2;
+    y = box.y + 13;
+    if (Math.abs(x - point.x) > 20) {
+      c.strokeStyle = '#c4a96b99';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(point.x, point.y + 2);
+      c.lineTo(x, box.y);
+      c.stroke();
+    }
     c.fillStyle = '#15252fee';
     c.strokeStyle = '#c4a96b';
     c.lineWidth = 1;
@@ -1360,6 +1402,16 @@ export class Renderer {
         size = Math.max(enemy.w + 16, enemy.h * 1.5) * (enemy.isElite ? 1.3 : 1);
       const x = enemy.x + enemy.w / 2,
         feet = enemy.y + enemy.h;
+      const screen = this.screenPoint(x - size / 2, feet - size - 2),
+        css = this.scale / this.dpr;
+      this.sceneDiagnostics.enemies.push({
+        id: enemy.id,
+        platformId: enemy.platformId,
+        x: screen.x,
+        y: screen.y,
+        width: size * css,
+        height: (size + 2) * css,
+      });
       ellipse(c, x, feet + 2, size * 0.32, 4, '#59432d30');
       c.save();
       c.translate(x, feet);
@@ -1371,7 +1423,7 @@ export class Renderer {
       c.drawImage(creatureArt.frames[row * 4 + col], -size / 2, -size - bob, size, size);
       c.restore();
       if (enemy.isElite) {
-        this.drawNamePill(enemy.name, x, feet - size, '#ffe08c', -10);
+        this.drawNamePill(enemy.name, x, feet - size - 25, '#ffe08c', -10);
         glow(c, x, feet - size / 2, 48, '#ffd85b22');
         star(c, x, feet - size - 46, 9, '#ffe08c');
       }
@@ -1685,23 +1737,35 @@ export class Renderer {
     const max = effect.maxLife || 0.6;
     const life = effect.life ?? max;
     const progress = clamp(1 - life / max, 0, 1);
-    const alpha = clamp((life / max) * 1.7, 0, 1);
+    const alpha =
+      effect.skillIndex === 0
+        ? progress < 0.82
+          ? 1
+          : Math.max(0, (1 - progress) / 0.18)
+        : clamp((life / max) * 1.7, 0, 1);
     const radius = effect.radius || effect.range || 80;
     const face = effect.facing || 1;
     const color =
       { vanguard: '#ffda8c', arcanist: '#c9b5ff', ranger: '#c7f0a5', nightblade: '#c4bdff' }[
         effect.classId || this.state.classId
       ] || '#ffe8a2';
-    if (
-      front !==
-      !['telegraph', 'boss-slam', 'boss-meteor', 'nova', 'ultimate', 'levelup'].includes(kind)
-    )
-      return;
+    if (front !== effectIsForeground(effect)) return;
     c.save();
     c.translate(effect.x || 0, effect.y || 0);
     c.globalAlpha = alpha;
     if (effect.skillIndex !== undefined) {
-      drawSkillVfx(c, effect, progress, this.state.settings?.reducedMotion);
+      const face = effect.facing || 1,
+        a = (this.camera.x - effect.x) * face,
+        b = (this.camera.x + this.width - effect.x) * face;
+      const paint = { ...effect, viewLeft: Math.min(a, b), viewRight: Math.max(a, b) };
+      this.sceneDiagnostics.skills.push({
+        classId: effect.classId,
+        slot: effect.skillIndex,
+        foreground: front,
+        progress,
+        ...primaryKeyframes(progress),
+      });
+      drawSkillVfx(c, paint, progress, this.state.settings?.reducedMotion);
     } else if (kind === 'skill-impact') {
       drawImpactVfx(c, effect, progress, this.state.settings?.reducedMotion);
     } else if (kind === 'buff') {

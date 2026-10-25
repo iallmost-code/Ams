@@ -1,3 +1,9 @@
+import atlas from './assets/skills.atlas.json';
+import {
+  primaryKeyframes,
+  PRIMARY_SKILL_SIZE,
+  paintedPosition,
+} from './game/skill-presentation.js';
 import { skillArt } from './art.js';
 /** Original combat art. Each class/slot has a distinct silhouette and motion. */
 export const ART_COLORS = {
@@ -96,23 +102,30 @@ function sparks(c, t, color, count = 12, radius = 100) {
 function paintedSkill(c, e, t, opacity = 1, large = false) {
   if (skillArt.frames.length !== 20) return false;
   const row = ['vanguard', 'arcanist', 'nightblade', 'ranger'].indexOf(e.classId || 'vanguard');
-  const phase = Math.min(4, t * 5),
-    frame = Math.floor(phase),
-    mix = phase - frame;
-  const size = large ? 420 : 285;
-  const travel =
-    e.classId === 'arcanist' || e.classId === 'ranger' ? t * Math.min(180, e.range * 0.5) : t * 35;
-  const x = (large ? 90 : 55) + travel,
+  const { frame, next, mix } = primaryKeyframes(t);
+  const size = large ? 420 : PRIMARY_SKILL_SIZE[e.classId || 'vanguard'];
+  const x = paintedPosition(
+      e,
+      t,
+      size,
+      atlas.contentBounds[row][2].width / skillArt.frames[row * 5].width,
+    ),
     y = large ? -35 : 0;
   const draw = (index, alpha) => {
     const image = skillArt.frames[row * 5 + index];
     c.save();
     c.globalAlpha *= alpha * opacity;
-    c.drawImage(image, x - size / 2, y - (size * 0.83) / 2, size, size * 0.83);
+    c.drawImage(
+      image,
+      x - size / 2,
+      y - (size * (skillArt.frames[row * 5].height / skillArt.frames[row * 5].width)) / 2,
+      size,
+      size * (skillArt.frames[row * 5].height / skillArt.frames[row * 5].width),
+    );
     c.restore();
   };
   draw(frame, 1 - mix);
-  if (frame < 4 && mix > 0) draw(frame + 1, mix);
+  if (next !== frame && mix > 0) draw(next, mix);
   return true;
 }
 export function drawSkillVfx(c, e, t, reducedMotion = false) {
